@@ -154,5 +154,7 @@ public:
       std::function<void(asio::error_code const& ec,
                          HistoryManager::CatchupMode mode,
                          LedgerHeaderHistoryEntry const& lastClosed)> handler);
+
+  static const VirtualClock::duration SLEEP_SECONDS_PER_LEDGER;
 };
 }
