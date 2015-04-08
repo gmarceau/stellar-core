@@ -24,6 +24,12 @@ namespace stellar
 
 using namespace std;
 
+SecretKey Simulation::createKey(int i)
+{
+    return SecretKey::fromSeed(sha256("SEED_VALIDATION_SEED_" + to_string(i)));
+}
+
+
 uint64
 Simulation::getMinBalance()
 {

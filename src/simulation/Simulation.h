@@ -26,6 +26,8 @@ namespace stellar
 class Simulation
 {
   public:
+    static SecretKey createKey(int i);
+
     enum Mode
     {
         OVER_TCP,
