@@ -112,6 +112,8 @@ class VirtualClock
     size_t advanceToNext();
     size_t advanceToNow();
 
+    int flushesIgnored = 0;
+
   public:
     // A VirtualClock is instantiated in either real or virtual mode. In real
     // mode, crank() sleeps until the next event, either timer or IO; in virtual
@@ -129,7 +131,7 @@ class VirtualClock
     time_point now() noexcept;
 
     void enqueue(VirtualClockEvent const& ve);
-    bool cancelAllEventsFrom(VirtualTimer& v);
+    bool flushCancelledEvents();
     bool cancelAllEvents();
 };
 
@@ -137,7 +139,8 @@ struct VirtualClockEvent
 {
     VirtualClock::time_point mWhen;
     std::function<void(asio::error_code)> mCallback;
-    VirtualTimer* mTimer;
+    std::shared_ptr<bool> mCancelled;
+
     ~VirtualClockEvent();
     bool live() const;
     bool operator<(VirtualClockEvent const& other) const
@@ -158,9 +161,10 @@ class VirtualTimer : private NonMovableOrCopyable
 {
     VirtualClock& mClock;
     VirtualClock::time_point mExpiryTime;
-    bool mCancelled;
+    std::shared_ptr<bool> mCancelled;
 
   public:
+
     VirtualTimer(Application& app);
     VirtualTimer(VirtualClock& app);
     ~VirtualTimer();

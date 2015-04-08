@@ -113,7 +113,7 @@ Topologies::core(int nNodes, float quorumThresoldFraction, Simulation::Mode mode
 Simulation::pointer
 Topologies::hierarchicalQuorum(int nBranches) // Figure 2 from the paper
 {
-    auto sim = Topologies::core(4, 1.0, Simulation::OVER_LOOPBACK);
+    auto sim = Topologies::core(4, 1.0, Simulation::OVER_TCP);
     vector<uint256> coreNodeIDs;
     for (auto coreNodeID : sim->getNodeIDs())
     {

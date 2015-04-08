@@ -140,16 +140,17 @@ VirtualClock::enqueue(VirtualClockEvent const& ve)
 }
 
 bool
-VirtualClock::cancelAllEventsFrom(VirtualTimer& v)
+VirtualClock::flushCancelledEvents()
 {
     if (mDestructing)
     {
         return false;
     }
-    // LOG(DEBUG) << "VirtualClock::cancelAllEventsFrom";
-    // Brute force approach; could be done better with a linked list
-    // per timer, as is done in asio. For the time being this should
-    // be tolerable.
+    if (flushesIgnored < mEvents.size())
+    {
+        flushesIgnored++;
+        return false;
+    }
     vector<VirtualClockEvent> toCancel;
     vector<VirtualClockEvent> toKeep;
     toCancel.reserve(mEvents.size());
@@ -160,7 +161,7 @@ VirtualClock::cancelAllEventsFrom(VirtualTimer& v)
         auto const& e = mEvents.top();
         if (e.live())
         {
-            if (e.mTimer == &v)
+            if (*e.mCancelled)
             {
                 changed = true;
                 toCancel.emplace_back(e);
@@ -181,6 +182,7 @@ VirtualClock::cancelAllEventsFrom(VirtualTimer& v)
         e.mCallback(asio::error::operation_aborted);
     }
     mEvents = priority_queue<VirtualClockEvent>(toKeep.begin(), toKeep.end());
+    flushesIgnored = 0;
     return changed;
 }
 
@@ -272,7 +274,10 @@ VirtualClock::advanceTo(time_point n)
     {
         if (mEvents.top().mWhen > mNow)
             break;
-        toDispatch.emplace(mEvents.top());
+        if (!*mEvents.top().mCancelled)
+        {
+            toDispatch.emplace(mEvents.top());
+        }
         mEvents.pop();
     }
     // LOG(DEBUG) << "VirtualClock::advanceTo running "
@@ -308,13 +313,13 @@ VirtualClock::advanceToNext()
 
 VirtualClockEvent::~VirtualClockEvent()
 {
-    mTimer = nullptr;
+    mCancelled = nullptr;
 }
 
 bool
 VirtualClockEvent::live() const
 {
-    return mTimer != nullptr;
+    return mCancelled != false;
 }
 
 VirtualTimer::VirtualTimer(Application& app)
@@ -323,7 +328,7 @@ VirtualTimer::VirtualTimer(Application& app)
 }
 
 VirtualTimer::VirtualTimer(VirtualClock& clock)
-    : mClock(clock), mExpiryTime(mClock.now()), mCancelled(false)
+    : mClock(clock), mExpiryTime(mClock.now()), mCancelled(make_shared<bool>(false))
 {
 }
 
@@ -335,10 +340,10 @@ VirtualTimer::~VirtualTimer()
 void
 VirtualTimer::cancel()
 {
-    if (!mCancelled)
+    if (!*mCancelled)
     {
-        mCancelled = true;
-        mClock.cancelAllEventsFrom(*this);
+        *mCancelled = true;
+        mClock.flushCancelledEvents();
     }
 }
 
@@ -347,7 +352,7 @@ VirtualTimer::expires_at(VirtualClock::time_point t)
 {
     cancel();
     mExpiryTime = t;
-    mCancelled = false;
+    mCancelled = make_shared<bool>(false);
 }
 
 void
@@ -355,15 +360,15 @@ VirtualTimer::expires_from_now(VirtualClock::duration d)
 {
     cancel();
     mExpiryTime = mClock.now() + d;
-    mCancelled = false;
+    mCancelled = make_shared<bool>(false);
 }
 
 void
 VirtualTimer::async_wait(function<void(asio::error_code)> const& fn)
 {
-    if (!mCancelled)
+    if (!*mCancelled)
     {
-        mClock.enqueue(VirtualClockEvent{mExpiryTime, fn, this});
+        mClock.enqueue(VirtualClockEvent{mExpiryTime, fn, mCancelled });
     }
 }
 
@@ -371,7 +376,7 @@ void
 VirtualTimer::async_wait(std::function<void()> const& onSuccess,
                          std::function<void(asio::error_code)> const& onFailure)
 {
-    if (!mCancelled)
+    if (!*mCancelled)
     {
         mClock.enqueue(
             VirtualClockEvent{mExpiryTime,
@@ -382,7 +387,7 @@ VirtualTimer::async_wait(std::function<void()> const& onSuccess,
                                   else
                                       onSuccess();
                               },
-                              this});
+                              mCancelled});
     }
 }
 }
