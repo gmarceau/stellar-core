@@ -482,15 +482,15 @@ HerderImpl::validateBallot(uint64 const& slotIndex, uint256 const& nodeID,
 
     uint256 valueHash = sha256(xdr::xdr_to_opaque(ballot.value));
 
-    CLOG(DEBUG, "Herder") << "HerderImpl::validateBallot"
-                          << "@" << hexAbbrev(getLocalNodeID())
-                          << " i: " << slotIndex << " v: " << hexAbbrev(nodeID)
-                          << " o: " << hexAbbrev(b.nodeID) << " b: ("
-                          << ballot.counter << "," << hexAbbrev(valueHash)
-                          << ")"
-                          << " isTrusted: " << isTrusted
-                          << " isKing: " << isKing
-                          << " timeout: " << pow(2.0, ballot.counter) / 2;
+    //CLOG(DEBUG, "Herder") << "HerderImpl::validateBallot"
+    //                      << "@" << hexAbbrev(getLocalNodeID())
+    //                      << " i: " << slotIndex << " v: " << hexAbbrev(nodeID)
+    //                      << " o: " << hexAbbrev(b.nodeID) << " b: ("
+    //                      << ballot.counter << "," << hexAbbrev(valueHash)
+    //                      << ")"
+    //                      << " isTrusted: " << isTrusted
+    //                      << " isKing: " << isKing
+    //                      << " timeout: " << pow(2.0, ballot.counter) / 2;
 
     if (isKing && isTrusted)
     {
@@ -500,13 +500,14 @@ HerderImpl::validateBallot(uint64 const& slotIndex, uint256 const& nodeID,
     }
     else
     {
-        CLOG(DEBUG, "Herder")
-            << "start timer"
-            << "@" << hexAbbrev(getLocalNodeID()) << " i: " << slotIndex
-            << " v: " << hexAbbrev(nodeID) << " o: " << hexAbbrev(b.nodeID)
-            << " b: (" << ballot.counter << "," << hexAbbrev(valueHash) << ")"
-            << " isTrusted: " << isTrusted << " isKing: " << isKing
-            << " timeout: " << pow(2.0, ballot.counter) / 2;
+        //CLOG(DEBUG, "Herder")
+        //    << "start timer"
+        //    << "@" << hexAbbrev(getLocalNodeID()) << " i: " << slotIndex
+        //    << " v: " << hexAbbrev(nodeID) << " o: " << hexAbbrev(b.nodeID)
+        //    << " b: (" << ballot.counter << "," << hexAbbrev(valueHash) << ")"
+        //    << " isTrusted: " << isTrusted << " isKing: " << isKing
+        //    << " timeout: " << pow(2.0, ballot.counter) / 2;
+
         // Create a timer to wait for current SCP timeout / 2 before accepting
         // that ballot.
         std::shared_ptr<VirtualTimer> ballotTimer =
@@ -731,14 +732,14 @@ HerderImpl::rebroadcast()
 {
     if (mLastSentMessage.type() == SCP_MESSAGE)
     {
-        CLOG(DEBUG, "Herder")
-            << "rebroadcast "
-            << " s:" << mLastSentMessage.envelope().statement.pledges.type()
-            << " i:" << mLastSentMessage.envelope().statement.slotIndex
-            << " b:" << mLastSentMessage.envelope().statement.ballot.counter
-            << " v:"
-            << binToHex(ByteSlice(
-                   &mLastSentMessage.envelope().statement.ballot.value[96], 3));
+        //CLOG(DEBUG, "Herder")
+        //    << "rebroadcast "
+        //    << " s:" << mLastSentMessage.envelope().statement.pledges.type()
+        //    << " i:" << mLastSentMessage.envelope().statement.slotIndex
+        //    << " b:" << mLastSentMessage.envelope().statement.ballot.counter
+        //    << " v:"
+        //    << binToHex(ByteSlice(
+        //           &mLastSentMessage.envelope().statement.ballot.value[96], 3));
 
         mEnvelopeEmit.Mark();
         mApp.getOverlayManager().broadcastMessage(mLastSentMessage, true);
@@ -774,6 +775,14 @@ HerderImpl::emitEnvelope(SCPEnvelope const& envelope)
         // start to broadcast our latest message
         mLastSentMessage.type(SCP_MESSAGE);
         mLastSentMessage.envelope() = envelope;
+
+        CLOG(DEBUG, "Herder") << "emitEnvelope"
+            << " from: " << hexAbbrev(envelope.nodeID)
+            << " s:" << envelope.statement.pledges.type()
+            << " i:" << envelope.statement.slotIndex
+            << " b:" << envelope.statement.ballot.counter
+            << " v:" << hexAbbrev(envelope.statement.ballot.value)
+            << " a:" << mApp.getStateHuman();
 
         rebroadcast();
     }
@@ -913,7 +922,7 @@ void
 HerderImpl::recvSCPEnvelope(SCPEnvelope envelope,
                             std::function<void(EnvelopeState)> const& cb)
 {
-    CLOG(DEBUG, "Herder") << "recvSCPEnvelope"
+    CLOG(DEBUG, "Herder") << "recvSCPEnvelope@" << hexAbbrev(getLocalNodeID())
                           << " from: " << hexAbbrev(envelope.nodeID)
                           << " s:" << envelope.statement.pledges.type()
                           << " i:" << envelope.statement.slotIndex

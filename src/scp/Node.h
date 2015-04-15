@@ -36,7 +36,7 @@ class Node
 {
 
   public:
-    Node(uint256 const& nodeID, SCP* SCP, int cacheCapacity = 4);
+    Node(uint256 const& nodeID, SCP* SCP, int cacheCapacity = 40);
 
     // Tests this node against nodeSet for the specified qSethash. Triggers the
     // retrieval of qSetHash for this node and may throw a QuorumSetNotFound

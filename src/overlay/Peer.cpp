@@ -42,7 +42,7 @@ Peer::Peer(Application& app, PeerRole role)
 void
 Peer::sendHello()
 {
-    CLOG(DEBUG,"Overlay") << "Peer::sendHello to " << toString();
+    //CLOG(DEBUG,"Overlay") << "Peer::sendHello to " << toString();
 
     StellarMessage msg;
     msg.type(HELLO);

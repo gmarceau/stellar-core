@@ -33,35 +33,48 @@ TEST_CASE("core4 topology", "[simulation]")
     REQUIRE(simulation->haveAllExternalized(3));
 }
 
+void
+hierarchicalTopo(int nLedgers, int nBranches, Simulation::Mode mode)
+{
+    auto tBegin = std::chrono::system_clock::now();
+
+    Simulation::pointer sim = Topologies::hierarchicalQuorum(nBranches, mode);
+    sim->startAllNodes();
+
+    sim->crankUntil(
+        [&sim, nLedgers]()
+    {
+        return sim->haveAllExternalized(nLedgers);
+    },
+        100 * nLedgers * Herder::EXP_LEDGER_TIMESPAN_SECONDS);
+
+    REQUIRE(sim->haveAllExternalized(3));
+
+    auto t = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now() - tBegin);
+
+    LOG(INFO) << "Time spent closing " << nLedgers << " ledgers with " << sim->getNodes().size() << " nodes : "
+        << t.count() << " seconds";
+
+    LOG(INFO) << sim->metricsSummary("scp");
+}
+
+TEST_CASE("compare", "[simulation][hide]")
+{
+    LOG(INFO) << "OVER_LOOPBACK";
+    hierarchicalTopo(2, 1, Simulation::OVER_LOOPBACK);
+
+    LOG(INFO) << "OVER_TCP";
+    hierarchicalTopo(2, 1, Simulation::OVER_TCP);
+}
+
+
 TEST_CASE("hierarchical topology at multiple scales", "[simulation][hide]")
 {
     int const nLedgers = 3;
-    std::vector<std::chrono::seconds> times;
-
-    for (int nBranches = 0; nBranches < 30; nBranches++)
+    for (auto nBranches = 0; nBranches < 30; nBranches++)
     {
-        auto tBegin = std::chrono::system_clock::now();
-
-        Simulation::pointer sim = Topologies::hierarchicalQuorum(nBranches);
-        sim->startAllNodes();
-
-        sim->crankUntil(
-            [&sim, nLedgers]()
-        {
-            return sim->haveAllExternalized(nLedgers);
-        },
-            100 * nLedgers * Herder::EXP_LEDGER_TIMESPAN_SECONDS);
-
-        REQUIRE(sim->haveAllExternalized(3));
-
-        auto t = std::chrono::duration_cast<std::chrono::seconds>(
-            std::chrono::system_clock::now() - tBegin);
-        times.push_back(t);
-
-        LOG(INFO) << "Time spent closing " << nLedgers << " ledgers with " << sim->getNodes().size() << " nodes : "
-            << t.count() << " seconds";
-
-        LOG(INFO) << sim->metricsSummary("scp");
+        hierarchicalTopo(nLedgers, nBranches, Simulation::OVER_LOOPBACK);
     }
 }
 
