@@ -138,7 +138,7 @@ TxSetFetcher::recvItem(TxSetFramePtr txSet)
                 std::make_shared<TxSetTrackingCollar>(txSet->getContentsHash(),
                                                       txSet, mApp);
             mItemMapSize.inc();
-        }
+            
     }
     return false;
 }
@@ -215,6 +215,9 @@ TrackingCollar::TrackingCollar(uint256 const& id, Application& app)
 {
     mRefCount = 1;
 }
+
+TrackingCollar::~TrackingCollar() 
+{ }
 
 void
 TrackingCollar::doesntHave(Peer::pointer peer)

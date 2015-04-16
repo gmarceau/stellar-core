@@ -31,10 +31,10 @@
  *  - Two-way anycast messages requesting a value (by hash) or providing it:
  *    GET_TX_SET, TX_SET, GET_SCP_QUORUMSET, SCP_QUORUMSET
  *
- * Anycasts are initiated and serviced by subclasses of ItemFetcher
- * (TxSetFetcher and SCPQSetFetcher), instances of which are held in the Herder.
- * Anycast messages are sent to directly-connected peers, in sequence until
- * satisfied, not are not flooded between peers.
+ * Anycasts are initiated and serviced two instances of ItemFetcher
+ * (mTxSetFetcher and mSCPQSetFetcher). Anycast messages are sent to 
+ * directly-connected peers, in sequence until satisfied. They are not 
+ * flooded between peers.
  *
  * Broadcasts are initiated by the Herder and sent to both the Herder _and_ the
  * local FloodGate, for propagation to other peers.
@@ -48,6 +48,11 @@ namespace stellar
 
 class PeerRecord;
 
+typedef std::shared_ptr<SCPQuorumSet> SCPQuorumSetPtr;
+
+class TxSetFrame;
+typedef std::shared_ptr<TxSetFrame> TxSetFramePtr;
+
 class OverlayManager
 {
   public:
@@ -56,8 +61,8 @@ class OverlayManager
     // Drop all PeerRecords from the Database
     static void dropAll(Database& db);
 
-    // Flush all FloodGate state for ledgers older than `ledger`. This is
-    // called by LedgerManager when a ledger closes.
+    // Flush all FloodGate and ItemFetcher state for ledgers older than `ledger`. 
+    // This is called by LedgerManager when a ledger closes.
     virtual void ledgerClosed(uint32_t lastClosedledgerSeq) = 0;
 
     // Send a given message to all peers, via the FloodGate. This is called by
@@ -110,6 +115,14 @@ class OverlayManager
 
     // Attempt to connect to a peer identified by peer record.
     virtual void connectTo(PeerRecord& pr) = 0;
+
+    // Asks connected peer for the TxSet corresponding to this txSetHash.
+    // Might invoke `cb` immediately if the TxSet is available in cache.
+    virtual void fetchTxSet(uint256 txSetHash, std::function<void(TxSetFramePtr const &txSet)> cb) = 0;
+
+    // Asks connected peer for the quorum set corresponding to this qSetHash.
+    // Might invoke `cb` immediately if the quorum set is available in cache.
+    virtual void fetchQuorumSet(uint256 qSetHash, std::function<void(TxSetFramePtr const &txSet)> cb) = 0;
 
     virtual ~OverlayManager()
     {

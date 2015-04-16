@@ -17,6 +17,6 @@ class FetchableItem
   public:
     uint256 getItemID();
 
-    virtual Message::pointer createMessage() = 0;
+    //virtual Message::pointer createMessage() = 0;
 };
 }

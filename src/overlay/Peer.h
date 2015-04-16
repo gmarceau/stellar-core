@@ -61,10 +61,7 @@ class Peer : public std::enable_shared_from_this<Peer>
     void recvDontHave(StellarMessage const& msg);
     void recvGetPeers(StellarMessage const& msg);
     void recvPeers(StellarMessage const& msg);
-    void recvGetHistory(StellarMessage const& msg);
-    void recvHistory(StellarMessage const& msg);
-    void recvGetDelta(StellarMessage const& msg);
-    void recvDelta(StellarMessage const& msg);
+
     void recvGetTxSet(StellarMessage const& msg);
     void recvTxSet(StellarMessage const& msg);
     void recvTransaction(StellarMessage const& msg);

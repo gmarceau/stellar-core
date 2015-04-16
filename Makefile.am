@@ -31,6 +31,7 @@ FMT_SRCS =                                      \
     src/herder/Herder.cpp                       \
     src/herder/HerderImpl.cpp                   \
     src/herder/HerderTests.cpp                  \
+    src/herder/PendingEnvelopes.cpp             \
     src/herder/TxSetFrame.cpp                   \
     src/history/FileTransferInfo.cpp            \
     src/history/CatchupStateMachine.cpp         \
@@ -121,6 +122,7 @@ FMT_HDRS =                                      \
     src/scp/Slot.h                              \
     src/herder/Herder.h                         \
     src/herder/HerderImpl.h                     \
+    src/herder/PendingEnvelopes.h               \
     src/herder/TxSetFrame.h                     \
     src/history/FileTransferInfo.h              \
     src/history/CatchupStateMachine.h           \

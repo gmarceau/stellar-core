@@ -62,6 +62,8 @@ OverlayManagerImpl::OverlayManagerImpl(Application& app)
     , mPeersSize(app.getMetrics().NewCounter({"overlay", "memory", "peers"}))
     , mTimer(app)
     , mFloodGate(app)
+    , mTxSetFetcher(app)
+    , mSCPQSetFetcher(app)
 {
     mTimer.expires_from_now(std::chrono::seconds(2));
 
@@ -271,7 +273,23 @@ OverlayManagerImpl::getRandomPeer()
     return Peer::pointer();
 }
 
-// returns NULL if the passed peer isn't found
+void 
+OverlayManagerImpl::fetchTxSet(
+    uint256 txSetHash, 
+    std::function<void(TxSetFramePtr const& txSet)> cb)
+{
+
+}
+
+void 
+OverlayManagerImpl::fetchQuorumSet(
+    uint256 qSetHash,
+    std::function<void(TxSetFramePtr const& txSet)> cb)
+{
+
+}
+
+    // returns NULL if the passed peer isn't found
 Peer::pointer
 OverlayManagerImpl::getNextPeer(Peer::pointer peer)
 {

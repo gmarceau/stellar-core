@@ -50,6 +50,10 @@ class OverlayManagerImpl : public OverlayManager
     void storeConfigPeers();
     bool isPeerPreferred(Peer::pointer peer);
 
+
+    ItemFetcher<TxSetFramePtr> mTxSetFetcher;
+    ItemFetcher<SCPQuorumSetPtr> mSCPQSetFetcher;
+
     friend class OverlayManagerTests;
 
   public:
@@ -78,5 +82,9 @@ class OverlayManagerImpl : public OverlayManager
 
     void connectToMorePeers(int max);
     Peer::pointer getRandomPeer() override;
+
+    void fetchTxSet(uint256 txSetHash, std::function<void(TxSetFramePtr const &txSet)> cb) override;
+
+    void fetchQuorumSet(uint256 qSetHash, std::function<void(TxSetFramePtr const &txSet)> cb) override;
 };
 }

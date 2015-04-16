@@ -32,6 +32,8 @@ class Counter;
 
 namespace stellar
 {
+
+template<class T>
 class TrackingCollar : private NonMovableOrCopyable
 {
     Application& mApp;
@@ -51,6 +53,7 @@ class TrackingCollar : private NonMovableOrCopyable
     virtual bool isItemFound() = 0;
 
     TrackingCollar(uint256 const& id, Application& app);
+    virtual ~TrackingCollar();
 
     void doesntHave(Peer::pointer peer);
     void tryNextPeer();
@@ -68,11 +71,12 @@ class TrackingCollar : private NonMovableOrCopyable
     }
 };
 
+template<class T>
 class ItemFetcher
 {
   protected:
     Application& mApp;
-    std::map<uint256, TrackingCollar::pointer> mItemMap;
+    std::map<uint256, typename TrackingCollar<T>::pointer> mItemMap;
 
     // NB: There are many ItemFetchers in the system at once, but we are sharing
     // a single counter for all the items being fetched by all of them. Be
@@ -82,73 +86,17 @@ class ItemFetcher
 
   public:
     ItemFetcher(Application& app);
+
     void clear();
     void stopFetching(uint256 const& itemID);
     void stopFetchingAll();
     // stop fetching items that verify a condition
-    void
-    stopFetchingPred(std::function<bool(uint256 const& itemID)> const& pred);
+    void stopFetchingPred(std::function<bool(uint256 const& itemID)> const& pred);
+
     void doesntHave(uint256 const& itemID, Peer::pointer peer);
+    void recv(uint256 itemID, T item);
 };
 
-// We want to keep the last N ledgers worth of Txsets around
-//    in case there are stragglers still trying to close
-class TxSetFetcher : public ItemFetcher
-{
-  public:
-    TxSetFetcher(Application& app) : ItemFetcher(app)
-    {
-    }
-    TxSetFramePtr fetchItem(uint256 const& txSetHash, bool askNetwork);
-    // looks to see if we know about it but doesn't ask the network
-    TxSetFramePtr findItem(uint256 const& itemID);
-    bool recvItem(TxSetFramePtr txSet);
-};
-
-class SCPQSetFetcher : public ItemFetcher
-{
-  public:
-    SCPQSetFetcher(Application& app) : ItemFetcher(app)
-    {
-    }
-    SCPQuorumSetPtr fetchItem(uint256 const& qSetHash, bool askNetwork);
-    // looks to see if we know about it but doesn't ask the network
-    SCPQuorumSetPtr findItem(uint256 const& itemID);
-    bool recvItem(SCPQuorumSetPtr qSet);
-};
-
-class TxSetTrackingCollar : public TrackingCollar
-{
-
-    void askPeer(Peer::pointer peer);
-
-  public:
-    TxSetFramePtr mTxSet;
-
-    TxSetTrackingCollar(uint256 const& id, TxSetFramePtr txSet,
-                        Application& app);
-    bool
-    isItemFound()
-    {
-        return (!!mTxSet);
-    }
-};
-
-class QSetTrackingCollar : public TrackingCollar
-{
-    void askPeer(Peer::pointer peer);
-
-  public:
-    SCPQuorumSetPtr mQSet;
-
-    QSetTrackingCollar(uint256 const& id, SCPQuorumSetPtr qSet,
-                       Application& app);
-    bool
-    isItemFound()
-    {
-        return (!!mQSet);
-    }
-};
 }
 
 #endif

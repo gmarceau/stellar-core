@@ -5,13 +5,12 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include <vector>
-#include <queue>
 #include <memory>
-#include <set>
 #include "herder/Herder.h"
-#include "overlay/ItemFetcher.h"
 #include "scp/SCP.h"
 #include "util/Timer.h"
+#include <overlay/FetchableItem.h>
+#include "PendingEnvelopes.h"
 
 namespace medida
 {
@@ -117,11 +116,9 @@ class HerderImpl : public Herder, public SCP
 
     void updateSCPCounters();
 
-    bool checkFutureCommitted(SCPEnvelope& envelope);
-
     void processSCPQueue();
     void processSCPQueueAtIndex(uint64 slotIndex);
-
+    
     // 0- tx we got during ledger close
     // 1- one ledger ago. rebroadcast
     // 2- two ledgers ago.
@@ -130,28 +127,13 @@ class HerderImpl : public Herder, public SCP
     // Time of last access to a node, used to evict unused nodes.
     std::map<uint256, VirtualClock::time_point> mNodeLastAccess;
 
-    // need to keep the old tx sets around for at least one Consensus round in
-    // case some stragglers are still need the old txsets in order to close
-    std::array<TxSetFetcher, 2> mTxSetFetcher;
-    int mCurrentTxSetFetcher;
-    std::map<Hash, std::vector<std::function<void(TxSetFramePtr)>>>
-        mTxSetFetches;
-
-    SCPQSetFetcher mSCPQSetFetcher;
-    std::map<Hash, std::vector<std::function<void(SCPQuorumSetPtr)>>>
-        mSCPQSetFetches;
-
-    std::map<
-        uint64,
-        std::queue<std::pair<SCPEnvelope, std::function<void(EnvelopeState)>>>>
-        mFutureEnvelopes;
+    PendingEnvelopes mPendingEnvelopes;
 
     std::map<SCPBallot,
              std::map<uint256, std::vector<std::shared_ptr<VirtualTimer>>>>
         mBallotValidationTimers;
 
     std::map<uint64, std::vector<SCPEnvelope>> mQuorumAheadOfUs;
-    std::set<uint64> mHasQuorumAheadOfUs;
 
     void herderOutOfSync();
 
@@ -232,7 +214,6 @@ class HerderImpl : public Herder, public SCP
 
     medida::Counter& mNodeLastAccessSize;
     medida::Counter& mSCPQSetFetchesSize;
-    medida::Counter& mFutureEnvelopesSize;
     medida::Counter& mBallotValidationTimersSize;
 
     // Counters for stuff in parent class (SCP)

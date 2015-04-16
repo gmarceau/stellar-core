@@ -414,6 +414,9 @@
     <ClCompile Include="..\..\src\herder\Herder.cpp">
       <Filter>herder</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\herder\PendingEnvelopes.cpp">
+      <Filter>herder</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -700,6 +703,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\lib\util\lrucache.hpp">
       <Filter>lib\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\herder\PendingEnvelopes.h">
+      <Filter>herder</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
