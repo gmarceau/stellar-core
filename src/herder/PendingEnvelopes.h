@@ -42,7 +42,6 @@ private:
     Application &mApp;
 
     std::map<uint64, std::deque<SCPEnvelope>> mEnvelopes;
-    std::map<uint64, std::deque<SCPEnvelope>> mReady;
     std::set<uint64> mIsFutureCommitted;
 
     HerderImpl &mHerder;

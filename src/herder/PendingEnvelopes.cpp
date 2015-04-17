@@ -79,9 +79,15 @@ PendingEnvelopes::eraseBelow(uint64 slotIndex)
 
 optional<SCPEnvelope> PendingEnvelopes::pop(uint64 slotIndex)
 {
-
-    // TODO 
-    return nullptr;
+    if (mEnvelopes[slotIndex].empty())
+    {
+        return nullptr;
+    } else
+    {
+        auto result = mEnvelopes[slotIndex].front();
+        mEnvelopes[slotIndex].pop_front();
+        return make_optional<SCPEnvelope>(result);
+    }
 }
 
 TxSetFramePtr PendingEnvelopes::getTxSet(Hash txSetHash, bool askNetwork)
