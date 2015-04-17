@@ -24,19 +24,17 @@
 namespace stellar
 {
 
-template<class T>
-ItemFetcher<T>::ItemFetcher(Application& app, size_t cacheSize
-    , std::function<TrackerPtr(uint256 hash)> makeTracker) :
+template<class T, class TrackerT>
+ItemFetcher<T, TrackerT>::ItemFetcher(Application& app, size_t cacheSize) :
     mApp(app)
     , mCache(cacheSize)
-    , mMakeTracker(makeTracker)
     , mItemMapSize(
          app.getMetrics().NewCounter({ "overlay", "memory", "item-fetch-map" }))
 {}
 
-template <class T>
+template<class T, class TrackerT>
 bool
-ItemFetcher<T>::get(uint256 hash, std::function<void(T item)> cb)
+ItemFetcher<T, TrackerT>::get(uint256 hash, std::function<void(T item)> cb)
 {
     if (mCache.exists(hash))
     {
@@ -49,9 +47,9 @@ ItemFetcher<T>::get(uint256 hash, std::function<void(T item)> cb)
 
 }
 
-template <class T>
-optional<typename ItemFetcher<T>::Tracker> 
-ItemFetcher<T>::getOrFetch(uint256 itemID, std::function<void(T item)> cb)
+template<class T, class TrackerT>
+optional<typename ItemFetcher<T, TrackerT>::Tracker> 
+ItemFetcher<T, TrackerT>::getOrFetch(uint256 itemID, std::function<void(T item)> cb)
 {
     if (get(itemID, cb))
     {
@@ -62,16 +60,16 @@ ItemFetcher<T>::getOrFetch(uint256 itemID, std::function<void(T item)> cb)
     }
 }
 
-template <class T>
-typename ItemFetcher<T>::TrackerPtr
-ItemFetcher<T>::fetch(uint256 itemID, std::function<void(T item)> cb)
+template<class T, class TrackerT>
+typename ItemFetcher<T, TrackerT>::TrackerPtr
+ItemFetcher<T, TrackerT>::fetch(uint256 itemID, std::function<void(T item)> cb)
 {
     auto entry = mTrackers.find(itemID);
     TrackerPtr tracker;
 
     if (entry == mTrackers.end())
     {
-        tracker = mMakeTracker(itemID);
+        tracker = std::make_shared<TrackerT>(mApp, itemID, *this);
         tracker->listen(cb);
         mTrackers[itemID] = tracker;
     } else
@@ -85,9 +83,9 @@ ItemFetcher<T>::fetch(uint256 itemID, std::function<void(T item)> cb)
 
 
 
-template <class T>
+template<class T, class TrackerT>
 void 
-ItemFetcher<T>::doesntHave(uint256 const& itemID, Peer::pointer peer)
+ItemFetcher<T, TrackerT>::doesntHave(uint256 const& itemID, Peer::pointer peer)
 {
     if (auto tracker = isNeeded(itemID))
     {
@@ -95,9 +93,9 @@ ItemFetcher<T>::doesntHave(uint256 const& itemID, Peer::pointer peer)
     }
 }
 
-template <class T>
+template<class T, class TrackerT>
 void 
-ItemFetcher<T>::recv(uint256 itemID, T item)
+ItemFetcher<T, TrackerT>::recv(uint256 itemID, T item)
 {
     if (auto tracker = isNeeded(itemID))
     {
@@ -107,9 +105,9 @@ ItemFetcher<T>::recv(uint256 itemID, T item)
 
 
 
-template <class T>
-optional<typename ItemFetcher<T>::Tracker>
-ItemFetcher<T>::isNeeded(uint256 itemID)
+template<class T, class TrackerT>
+optional<typename ItemFetcher<T, TrackerT>::Tracker>
+ItemFetcher<T, TrackerT>::isNeeded(uint256 itemID)
 {
     auto entry = mTrackers.find(itemID);
     if (entry != mTrackers.end())
@@ -128,29 +126,29 @@ ItemFetcher<T>::isNeeded(uint256 itemID)
 }
 
 
-template <class T>
-ItemFetcher<T>::Tracker::~Tracker()
+template<class T, class TrackerT>
+ItemFetcher<T, TrackerT>::Tracker::~Tracker()
 {
     cancel();
 }
 
 
-template<class T>
+template<class T, class TrackerT>
 bool 
-ItemFetcher<T>::Tracker::isItemFound()
+ItemFetcher<T, TrackerT>::Tracker::isItemFound()
 {
     return mItem != nullptr;
 }
 
-template <class T>
-T ItemFetcher<T>::Tracker::get()
+template<class T, class TrackerT>
+T ItemFetcher<T, TrackerT>::Tracker::get()
 {
     return *mItem;
 }
 
-template <class T>
+template<class T, class TrackerT>
 void 
-ItemFetcher<T>::Tracker::doesntHave(Peer::pointer peer)
+ItemFetcher<T, TrackerT>::Tracker::doesntHave(Peer::pointer peer)
 {
     if (mLastAskedPeer == peer)
     {
@@ -158,9 +156,9 @@ ItemFetcher<T>::Tracker::doesntHave(Peer::pointer peer)
     }
 }
 
-template <class T>
+template<class T, class TrackerT>
 void 
-ItemFetcher<T>::Tracker::recv(T item)
+ItemFetcher<T, TrackerT>::Tracker::recv(T item)
 {
     mItem = make_optional<T>(item);
     for(auto cb : mCallbacks)
@@ -170,9 +168,9 @@ ItemFetcher<T>::Tracker::recv(T item)
     cancel();
 }
 
-template <class T>
+template<class T, class TrackerT>
 void 
-ItemFetcher<T>::Tracker::tryNextPeer()
+ItemFetcher<T, TrackerT>::Tracker::tryNextPeer()
 {
     // will be called by some timer or when we get a 
     // response saying they don't have it
@@ -231,8 +229,8 @@ ItemFetcher<T>::Tracker::tryNextPeer()
     }
 }
 
-template <class T>
-void ItemFetcher<T>::Tracker::cancel()
+template<class T, class TrackerT>
+void ItemFetcher<T, TrackerT>::Tracker::cancel()
 {
     mCallbacks.clear();
     mPeersAsked.clear();
@@ -240,54 +238,25 @@ void ItemFetcher<T>::Tracker::cancel()
     mLastAskedPeer = nullptr;
 }
 
-template <class T>
-void ItemFetcher<T>::Tracker::listen(std::function<void(T item)> cb)
+template<class T, class TrackerT>
+void ItemFetcher<T, TrackerT>::Tracker::listen(std::function<void(T item)> cb)
 {
     mCallbacks.push_back(cb);
 }
 
 
-template ItemFetcher<TxSetFramePtr>;
-template ItemFetcher<SCPQuorumSetPtr>;
-
-    /*
-
-
-ItemFetcher::ItemFetcher(Application& app)
-     mItemMapSize(
-          app.getMetrics().NewCounter({"overlay", "memory", "item-fetch-map"}))
-{
-}
-
-
-}
-
-}
-
-QSetTrackingCollar::QSetTrackingCollar(uint256 const& id, SCPQuorumSetPtr qSet,
-                                       Application& app)
-    : Tracker(id, app), mQSet(qSet)
-{
-}
-
-void
-QSetTrackingCollar::askPeer(Peer::pointer peer)
-{
-    peer->sendGetQuorumSet(mItemID);
-}
-
-TxSetTrackingCollar::TxSetTrackingCollar(uint256 const& id, TxSetFramePtr txSet,
-                                         Application& app)
-    : Tracker(id, app), mTxSet(txSet)
-{
-}
-
-void
-TxSetTrackingCollar::askPeer(Peer::pointer peer)
+void TxSetTracker::askPeer(Peer::pointer peer)
 {
     peer->sendGetTxSet(mItemID);
 }
 
-*/
+void QuorumSetTracker::askPeer(Peer::pointer peer)
+{
+    peer->sendGetQuorumSet(mItemID);
+}
+
+template ItemFetcher<TxSetFramePtr, TxSetTracker>;
+template ItemFetcher<SCPQuorumSetPtr, QuorumSetTracker>;
+
 
 }

@@ -52,12 +52,13 @@ namespace stellar
 {
 
 
-template<class T>
+template<class T, class TrackerT>
 class ItemFetcher : private NonMovableOrCopyable
 {
 public:
     class Tracker : private NonMovableOrCopyable
     {
+    private:
         Application &mApp;
         ItemFetcher &mItemFetcher;
         Peer::pointer mLastAskedPeer;
@@ -94,7 +95,6 @@ protected:
     Application& mApp;
     std::map<uint256, std::weak_ptr<Tracker>> mTrackers;
     cache::lru_cache<uint256, T> mCache;
-    std::function<TrackerPtr(uint256 hash)> mMakeTracker;
 
     // NB: There are many ItemFetchers in the system at once, but we are sharing
     // a single counter for all the items being fetched by all of them. Be
@@ -105,8 +105,7 @@ protected:
 
   public:
       
-    explicit ItemFetcher(Application& app, size_t cacheSize,
-                         std::function<TrackerPtr(uint256 hash)> makeTracker);
+    explicit ItemFetcher(Application& app, size_t cacheSize);
 
     // Hand the item to `cb` if available in the cache and returns true,
     // else returns false
@@ -129,6 +128,26 @@ protected:
 
     optional<Tracker> isNeeded(uint256 itemID);
 };
+
+class TxSetTracker : public ItemFetcher<TxSetFramePtr, TxSetTracker>::Tracker
+{
+public:
+    TxSetTracker(Application &app, uint256 id, ItemFetcher<TxSetFramePtr, TxSetTracker> &itemFetcher) :
+        Tracker(app, id, itemFetcher) {}
+
+    void askPeer(Peer::pointer peer) override;
+};
+
+class QuorumSetTracker : public ItemFetcher<SCPQuorumSetPtr, QuorumSetTracker>::Tracker
+{
+public:
+    QuorumSetTracker(Application &app, uint256 id, ItemFetcher<SCPQuorumSetPtr, QuorumSetTracker> &itemFetcher) :
+        Tracker(app, id, itemFetcher) {}
+
+    void askPeer(Peer::pointer peer) override;
+};
+
+
 }
 
 
