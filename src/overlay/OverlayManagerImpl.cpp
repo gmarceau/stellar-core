@@ -48,22 +48,22 @@ OverlayManagerImpl::OverlayManagerImpl(Application& app)
     : mApp(app)
     , mDoor(make_shared<PeerDoor>(mApp))
     , mMessagesReceived(app.getMetrics().NewMeter(
-          {"overlay", "message", "receive"}, "message"))
+                               {"overlay", "message", "receive"}, "message"))
     , mMessagesBroadcast(app.getMetrics().NewMeter(
-          {"overlay", "message", "broadcast"}, "message"))
+                                {"overlay", "message", "broadcast"}, "message"))
     , mConnectionsAttempted(app.getMetrics().NewMeter(
-          {"overlay", "connection", "attempt"}, "connection"))
+                                   {"overlay", "connection", "attempt"}, "connection"))
     , mConnectionsEstablished(app.getMetrics().NewMeter(
-          {"overlay", "connection", "establish"}, "connection"))
+                                     {"overlay", "connection", "establish"}, "connection"))
     , mConnectionsDropped(app.getMetrics().NewMeter(
-          {"overlay", "connection", "drop"}, "connection"))
+                                 {"overlay", "connection", "drop"}, "connection"))
     , mConnectionsRejected(app.getMetrics().NewMeter(
-          {"overlay", "connection", "reject"}, "connection"))
+                                  {"overlay", "connection", "reject"}, "connection"))
     , mPeersSize(app.getMetrics().NewCounter({"overlay", "memory", "peers"}))
     , mTimer(app)
-    , mFloodGate(app)
-    , mTxSetFetcher(app, 400) // TODO 
-    , mSCPQSetFetcher(app, 400) // TODO
+    , mTxSetFetcher(app, 400, nullptr)
+    , mSCPQSetFetcher(app, 400, nullptr) // TODO 
+    , mFloodGate(app) // TODO
 {
     mTimer.expires_from_now(std::chrono::seconds(2));
 

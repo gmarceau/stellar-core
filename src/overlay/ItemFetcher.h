@@ -14,6 +14,7 @@
 #include "util/Timer.h"
 #include "util/NonCopyable.h"
 #include "lib/util/lrucache.hpp"
+#include <util/optional.h>
 
 /*
 Manages asking for Transaction or Quorum sets from Peers
@@ -57,37 +58,43 @@ class ItemFetcher : private NonMovableOrCopyable
 public:
     class Tracker : private NonMovableOrCopyable
     {
+        Application &mApp;
+        ItemFetcher &mItemFetcher;
         Peer::pointer mLastAskedPeer;
         std::vector<Peer::pointer> mPeersAsked;
         VirtualTimer mTimer;
+        optional<T> mItem;
 
         std::vector<std::function<void(T item)>> mCallbacks;
 
     public:
         uint256 mItemID;
+        explicit Tracker(Application &app, uint256 const& id, ItemFetcher &itemFetcher) : 
+            mApp(app)
+          , mItemFetcher(itemFetcher)
+          , mTimer(app)
+          , mItemID(id) {}
+        virtual ~Tracker();
+
+        bool isItemFound();
+        T get();
+        void cancel();
+        void listen(std::function<void(T item)> cb);
 
         virtual void askPeer(Peer::pointer peer) = 0;
-        virtual bool isItemFound() = 0;
-        virtual T get() = 0;
-
-        explicit Tracker(uint256 const& id) {}
-        virtual ~Tracker() {}
 
         void doesntHave(Peer::pointer peer);
         void recv(T item);
-
         void tryNextPeer();
-        void cancel();
-
-        void reg(std::function<void(T item)> cb);
     };
 
     using TrackerPtr = std::shared_ptr<Tracker>;
 
 protected:
     Application& mApp;
-    std::map<uint256, std::weak_ptr<Tracker>> mTracking;
+    std::map<uint256, std::weak_ptr<Tracker>> mTrackers;
     cache::lru_cache<uint256, T> mCache;
+    std::function<TrackerPtr(uint256 hash)> mMakeTracker;
 
     // NB: There are many ItemFetchers in the system at once, but we are sharing
     // a single counter for all the items being fetched by all of them. Be
@@ -98,22 +105,30 @@ protected:
 
   public:
       
-    explicit ItemFetcher(Application& app, size_t cacheSize);
+    explicit ItemFetcher(Application& app, size_t cacheSize,
+                         std::function<TrackerPtr(uint256 hash)> makeTracker);
 
     // Hand the item to `cb` if available in the cache and returns true,
-    // otherwise returns false.
-    bool get(uint256 hash, std::function<void(T item)> cb);
+    // else returns false
+    bool get(uint256 itemID, std::function<void(T item)> cb);
 
-    // Start fetching the item tracked by `tracker`. Assumes there 
-    // is no tracker registered for this item yet (calls `get` first).
-    // Immediately registers `cb` with the tracker.
-    void fetch(TrackerPtr tracker, std::function<void(T item)> cb);
+    // Start fetching the item and returns a tracker with `cb` registered 
+    // with the tracker). Releasing all shared_ptr references
+    // to the tracker will cancel the fetch.
+    //
+    // The callback must be idempoten and without dependencies on allocated
+    // memory, as it can be called anytime in the future between now and a 
+    // call `cancel`, including much later if there are other references to this
+    // tracker.
+    TrackerPtr fetch(uint256 itemID, std::function<void(T item)> cb);
 
+    optional<Tracker> getOrFetch(uint256 itemID, std::function<void(T item)> cb);
 
     void doesntHave(uint256 const& itemID, Peer::pointer peer);
     void recv(uint256 itemID, T item);
-};
 
+    optional<Tracker> isNeeded(uint256 itemID);
+};
 }
 
 
