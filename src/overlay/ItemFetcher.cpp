@@ -1,10 +1,10 @@
-// Copyright 2014 Stellar Development Foundation and contributors. Licensed
+// Covpyright 2014 Stellar Development Foundation and contributors. Licensed
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include "overlay/ItemFetcher.h"
 #include "crypto/SHA.h"
 #include "main/Application.h"
-#include "overlay/ItemFetcher.h"
 #include "overlay/OverlayManager.h"
 #include "util/Logging.h"
 
@@ -24,92 +24,99 @@
 namespace stellar
 {
 
+template<class T>
+ItemFetcher<T>::ItemFetcher(Application& app, size_t cacheSize) : 
+    mApp(app), mCache(cacheSize)
+{}
+
+template <class T>
+bool 
+ItemFetcher<T>::get(uint256 hash, std::function<void(T item)> cb)
+{
+    if (mCache.exists(hash))
+    {
+        cb(mCache.get(hash));
+        return true;
+    } else
+    {
+        return false;
+    }
+
+}
+
+template <class T>
+void 
+ItemFetcher<T>::fetch(TrackerPtr tracker, std::function<void(T item)> cb)
+{
+    assert(mTracking.find(tracker->mItemID) == mTracking.end());
+
+
+    // TODO: flush expired weak_ptrs
+
+    mTracking[tracker->mItemID] = tracker;
+    tracker->tryNextPeer();
+    tracker->reg(cb);
+}
+
+template <class T>
+void ItemFetcher<T>::doesntHave(uint256 const& itemID, Peer::pointer peer)
+{
+    auto entry = mTracking.find(itemID);
+    if (entry != mTracking.end())
+    {
+        if (auto tracker = entry->second.lock())
+        {
+            tracker->doesntHave(itemID);
+        }
+        else
+        {
+            mTracking.erase(entry);
+        }
+    }
+}
+
+template <class T>
+void ItemFetcher<T>::recv(uint256 itemID, T item)
+{
+    auto entry = mTracking.find(itemID);
+    if (entry != mTracking.end())
+    {
+        if (auto tracker = entry->second.lock())
+        {
+            tracker->recv(itemID);
+        } else
+        {
+            mTracking.erase(entry);
+        }
+    }
+}
+
+template <class T>
+void ItemFetcher<T>::Tracker::doesntHave(Peer::pointer peer)
+{
+    if (mLastAskedPeer == peer)
+    {
+        tryNextPeer();
+    }
+}
+
+template <class T>
+void ItemFetcher<T>::Tracker::recv(T item)
+{
+
+}
+
+
+    /*
+
+
 ItemFetcher::ItemFetcher(Application& app)
-    : mApp(app)
-    , mItemMapSize(
+     mItemMapSize(
           app.getMetrics().NewCounter({"overlay", "memory", "item-fetch-map"}))
 {
 }
 
-void
-ItemFetcher::doesntHave(uint256 const& itemID, Peer::pointer peer)
-{
-    auto result = mItemMap.find(itemID);
-    if (result != mItemMap.end())
-    { // found
-        result->second->doesntHave(peer);
-    }
-}
-void
-ItemFetcher::stopFetchingAll()
-{
-    stopFetchingPred(nullptr);
-}
 
-void
-ItemFetcher::stopFetchingPred(
-    std::function<bool(uint256 const& itemID)> const& pred)
-{
-    for (auto& item : mItemMap)
-    {
-        if (!pred || pred(item.first))
-            item.second->cancelFetch();
-    }
-}
-
-// LATER  Do we ever need to call this
-void
-ItemFetcher::stopFetching(uint256 const& itemID)
-{
-    auto result = mItemMap.find(itemID);
-    if (result != mItemMap.end())
-    {
-        result->second->refDec();
-    }
-}
-
-void
-ItemFetcher::clear()
-{
-    int64_t n = static_cast<int64_t>(mItemMap.size());
-    mItemMap.clear();
-    mItemMapSize.dec(n);
-}
-
-//////////////////////////////
-
-TxSetFramePtr
-TxSetFetcher::fetchItem(uint256 const& txSetHash, bool askNetwork)
-{
-    // look it up in the map
-    // if not found then start fetching
-    auto result = mItemMap.find(txSetHash);
-    if (result != mItemMap.end())
-    { // collar found
-        if (result->second->isItemFound())
-        {
-            return ((TxSetTrackingCollar*)result->second.get())->mTxSet;
-        }
-        else
-        {
-            result->second->refInc();
-        }
-    }
-    else
-    { // not found
-
-        if (askNetwork)
-        {
-            TrackingCollar::pointer collar =
-                std::make_shared<TxSetTrackingCollar>(txSetHash,
-                                                      TxSetFramePtr(), mApp);
-            mItemMap[txSetHash] = collar;
-            mItemMapSize.inc();
-            collar->tryNextPeer();
-        }
-    }
-    return (TxSetFramePtr());
-}
 
 // TODO.1: This all needs to change
 // returns true if we were waiting for this txSet
@@ -143,90 +150,6 @@ TxSetFetcher::recvItem(TxSetFramePtr txSet)
     return false;
 }
 
-////////////////////////////////////////
-
-SCPQuorumSetPtr
-SCPQSetFetcher::fetchItem(uint256 const& qSetHash, bool askNetwork)
-{
-    // look it up in the map
-    // if not found then start fetching
-    auto result = mItemMap.find(qSetHash);
-    if (result != mItemMap.end())
-    { // collar found
-        if (result->second->isItemFound())
-        {
-            return ((QSetTrackingCollar*)result->second.get())->mQSet;
-        }
-        else
-        {
-            result->second->refInc();
-        }
-    }
-    else
-    { // not found
-        if (askNetwork)
-        {
-            TrackingCollar::pointer collar =
-                std::make_shared<QSetTrackingCollar>(qSetHash,
-                                                     SCPQuorumSetPtr(), mApp);
-            mItemMap[qSetHash] = collar;
-            mItemMapSize.inc();
-            collar->tryNextPeer(); // start asking
-        }
-    }
-    return (SCPQuorumSetPtr());
-}
-
-// returns true if we were waiting for this qSet
-bool
-SCPQSetFetcher::recvItem(SCPQuorumSetPtr qSet)
-{
-    if (qSet)
-    {
-        uint256 qSetHash = sha256(xdr::xdr_to_opaque(*qSet));
-        auto result = mItemMap.find(qSetHash);
-        if (result != mItemMap.end())
-        {
-            int refCount = result->second->getRefCount();
-            result->second->cancelFetch();
-            ((QSetTrackingCollar*)result->second.get())->mQSet = qSet;
-            if (refCount)
-            { // someone was still interested in
-                // this quorum set so tell SCP
-                // LATER: maybe change this to pub/sub
-                return true;
-            }
-        }
-        else
-        { // doesn't seem like we were looking for it. Maybe just add it for
-            // now
-            mItemMap[qSetHash] =
-                std::make_shared<QSetTrackingCollar>(qSetHash, qSet, mApp);
-            mItemMapSize.inc();
-        }
-    }
-    return false;
-}
-
-//////////////////////////////////////////////////////////////////////////
-
-TrackingCollar::TrackingCollar(uint256 const& id, Application& app)
-    : mApp(app), mTimer(app), mItemID(id)
-{
-    mRefCount = 1;
-}
-
-TrackingCollar::~TrackingCollar() 
-{ }
-
-void
-TrackingCollar::doesntHave(Peer::pointer peer)
-{
-    if (mLastAskedPeer == peer)
-    {
-        tryNextPeer();
-    }
-}
 
 void
 TrackingCollar::refDec()
@@ -304,7 +227,7 @@ TrackingCollar::tryNextPeer()
 
 QSetTrackingCollar::QSetTrackingCollar(uint256 const& id, SCPQuorumSetPtr qSet,
                                        Application& app)
-    : TrackingCollar(id, app), mQSet(qSet)
+    : Tracker(id, app), mQSet(qSet)
 {
 }
 
@@ -316,7 +239,7 @@ QSetTrackingCollar::askPeer(Peer::pointer peer)
 
 TxSetTrackingCollar::TxSetTrackingCollar(uint256 const& id, TxSetFramePtr txSet,
                                          Application& app)
-    : TrackingCollar(id, app), mTxSet(txSet)
+    : Tracker(id, app), mTxSet(txSet)
 {
 }
 
@@ -325,4 +248,7 @@ TxSetTrackingCollar::askPeer(Peer::pointer peer)
 {
     peer->sendGetTxSet(mItemID);
 }
+
+*/
+
 }

@@ -62,8 +62,8 @@ OverlayManagerImpl::OverlayManagerImpl(Application& app)
     , mPeersSize(app.getMetrics().NewCounter({"overlay", "memory", "peers"}))
     , mTimer(app)
     , mFloodGate(app)
-    , mTxSetFetcher(app)
-    , mSCPQSetFetcher(app)
+    , mTxSetFetcher(app, 400) // TODO 
+    , mSCPQSetFetcher(app, 400) // TODO
 {
     mTimer.expires_from_now(std::chrono::seconds(2));
 

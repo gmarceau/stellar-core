@@ -13,6 +13,7 @@
 #include "overlay/Peer.h"
 #include "util/Timer.h"
 #include "util/NonCopyable.h"
+#include "lib/util/lrucache.hpp"
 
 /*
 Manages asking for Transaction or Quorum sets from Peers
@@ -30,53 +31,63 @@ namespace medida
 class Counter;
 }
 
+namespace std
+{
+template<>
+struct hash<stellar::uint256>
+{
+    size_t operator()(stellar::uint256 const & x) const noexcept
+    {
+        size_t res = x[0];
+        res = (res << 8) | x[1];
+        res = (res << 8) | x[2];
+        res = (res << 8) | x[3];
+        return res;
+    }
+};
+}
+
 namespace stellar
 {
 
-template<class T>
-class TrackingCollar : private NonMovableOrCopyable
-{
-    Application& mApp;
-    Peer::pointer mLastAskedPeer;
-    std::vector<Peer::pointer> mPeersAsked;
-    VirtualTimer mTimer;
-    int mRefCount;
-
-  protected:
-    virtual void askPeer(Peer::pointer peer) = 0;
-
-  public:
-    typedef std::shared_ptr<TrackingCollar> pointer;
-
-    uint256 mItemID;
-
-    virtual bool isItemFound() = 0;
-
-    TrackingCollar(uint256 const& id, Application& app);
-    virtual ~TrackingCollar();
-
-    void doesntHave(Peer::pointer peer);
-    void tryNextPeer();
-    void cancelFetch();
-    void
-    refInc()
-    {
-        mRefCount++;
-    }
-    void refDec();
-    int
-    getRefCount()
-    {
-        return mRefCount;
-    }
-};
 
 template<class T>
-class ItemFetcher
+class ItemFetcher : private NonMovableOrCopyable
 {
-  protected:
+public:
+    class Tracker : private NonMovableOrCopyable
+    {
+        Peer::pointer mLastAskedPeer;
+        std::vector<Peer::pointer> mPeersAsked;
+        VirtualTimer mTimer;
+
+        std::vector<std::function<void(T item)>> mCallbacks;
+
+    public:
+        uint256 mItemID;
+
+        virtual void askPeer(Peer::pointer peer) = 0;
+        virtual bool isItemFound() = 0;
+        virtual T get() = 0;
+
+        explicit Tracker(uint256 const& id) {}
+        virtual ~Tracker() {}
+
+        void doesntHave(Peer::pointer peer);
+        void recv(T item);
+
+        void tryNextPeer();
+        void cancel();
+
+        void reg(std::function<void(T item)> cb);
+    };
+
+    using TrackerPtr = std::shared_ptr<Tracker>;
+
+protected:
     Application& mApp;
-    std::map<uint256, typename TrackingCollar<T>::pointer> mItemMap;
+    std::map<uint256, std::weak_ptr<Tracker>> mTracking;
+    cache::lru_cache<uint256, T> mCache;
 
     // NB: There are many ItemFetchers in the system at once, but we are sharing
     // a single counter for all the items being fetched by all of them. Be
@@ -84,19 +95,26 @@ class ItemFetcher
     // it absolutely.
     medida::Counter& mItemMapSize;
 
-  public:
-    ItemFetcher(Application& app);
 
-    void clear();
-    void stopFetching(uint256 const& itemID);
-    void stopFetchingAll();
-    // stop fetching items that verify a condition
-    void stopFetchingPred(std::function<bool(uint256 const& itemID)> const& pred);
+  public:
+      
+    explicit ItemFetcher(Application& app, size_t cacheSize);
+
+    // Hand the item to `cb` if available in the cache and returns true,
+    // otherwise returns false.
+    bool get(uint256 hash, std::function<void(T item)> cb);
+
+    // Start fetching the item tracked by `tracker`. Assumes there 
+    // is no tracker registered for this item yet (calls `get` first).
+    // Immediately registers `cb` with the tracker.
+    void fetch(TrackerPtr tracker, std::function<void(T item)> cb);
+
 
     void doesntHave(uint256 const& itemID, Peer::pointer peer);
     void recv(uint256 itemID, T item);
 };
 
 }
+
 
 #endif

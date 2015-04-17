@@ -141,9 +141,9 @@ Node::retrieveQuorumSet(uint256 const& qSetHash)
     // Notify that we touched this node.
     mSCP->nodeTouched(mNodeID);
 
-    if (mCache.exists(qSetHash))
+    if (mCache.exists(0)) // TODO
     {
-        return mCache.get(qSetHash);
+        return mCache.get(0); // TODO
     }
 
     CLOG(DEBUG, "SCP") << "Node::retrieveQuorumSet"
@@ -161,7 +161,7 @@ Node::cacheQuorumSet(SCPQuorumSet const& qSet)
                        << "@" << hexAbbrev(mNodeID)
                        << " qSet: " << hexAbbrev(qSetHash);
 
-    mCache.put(qSetHash, qSet);
+    mCache.put(0, qSet); // TODO
 }
 
 uint256 const&

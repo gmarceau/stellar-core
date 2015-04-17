@@ -8,29 +8,8 @@ namespace stellar
 PendingEnvelopes::PendingEnvelopes(Application &app, HerderImpl &herder) :
     mApp(app)
     , mHerder(herder)
-    , mSCPQSetFetcher(app)
     , mPendingEnvelopesSize(
          app.getMetrics().NewCounter({ "scp", "memory", "pending-envelopes" }))
-
-#ifdef _MSC_VER
-    // This form of initializer causes a warning due to brace-elision on
-    // clang.
-    , mTxSetFetcher({ TxSetFetcher(app), TxSetFetcher(app) })
-#else
-    // This form of initializer is "not implemented" in MSVC yet.
-    , mTxSetFetcher
-{
-    {
-        {
-            TxSetFetcher(app)
-        }
-        ,
-        {
-            TxSetFetcher(app)
-        }
-    }
-}
-#endif
 {}
 
 

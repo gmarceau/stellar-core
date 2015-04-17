@@ -10,22 +10,6 @@
 #include "scp/SCP.h"
 #include <lib/util/lrucache.hpp>
 
-namespace std
-{
-template<>
-struct hash<stellar::Hash>
-{
-    size_t operator()(stellar::Hash const & x) const noexcept
-    {
-        size_t res = x[0];
-        res = (res << 8) | x[1];
-        res = (res << 8) | x[2];
-        res = (res << 8) | x[3];
-        return res;
-    }
-};
-}
-
 
 namespace stellar
 {
@@ -123,6 +107,6 @@ class Node
     SCP* mSCP;
 
   private:
-    cache::lru_cache<Hash, SCPQuorumSet> mCache;
+    cache::lru_cache<int, SCPQuorumSet> mCache;
 };
 }
