@@ -15,7 +15,6 @@
 #include "medida/meter.h"
 #include "medida/counter.h"
 
-#include <thread>
 #include <random>
 
 // TODO.3 flood older msgs to people that connect to you
@@ -62,7 +61,7 @@ OverlayManagerImpl::OverlayManagerImpl(Application& app)
     , mPeersSize(app.getMetrics().NewCounter({"overlay", "memory", "peers"}))
     , mTimer(app)
     , mTxSetFetcher(app, 400) // TODO
-    , mSCPQSetFetcher(app, 400) // TODO 
+    , mQuorumSetFetcher(app, 400) // TODO 
     , mFloodGate(app) // TODO
 {
     mTimer.expires_from_now(std::chrono::seconds(2));
@@ -273,21 +272,20 @@ OverlayManagerImpl::getRandomPeer()
     return Peer::pointer();
 }
 
-void 
+TxSetTrackerPtr
 OverlayManagerImpl::fetchTxSet(
     uint256 txSetHash, 
     std::function<void(TxSetFramePtr const& txSet)> cb)
 {
-
+    return mTxSetFetcher.fetch(txSetHash, cb);
 }
 
-void 
-OverlayManagerImpl::fetchQuorumSet(
-    uint256 qSetHash,
-    std::function<void(TxSetFramePtr const& txSet)> cb)
+QuorumSetTrackerPtr 
+OverlayManagerImpl::fetchQuorumSet(uint256 qSetHash, std::function<void(SCPQuorumSetPtr const& txSet)> cb)
 {
-
+    return mQuorumSetFetcher.fetch(qSetHash, cb);
 }
+
 
     // returns NULL if the passed peer isn't found
 Peer::pointer

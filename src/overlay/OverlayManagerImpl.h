@@ -10,7 +10,6 @@
 #include "overlay/ItemFetcher.h"
 #include "overlay/Floodgate.h"
 #include <vector>
-#include <thread>
 #include "generated/StellarXDR.h"
 #include "overlay/OverlayManager.h"
 #include "util/Timer.h"
@@ -52,7 +51,7 @@ class OverlayManagerImpl : public OverlayManager
 
 
     ItemFetcher<TxSetFramePtr, TxSetTracker> mTxSetFetcher;
-    ItemFetcher<SCPQuorumSetPtr, QuorumSetTracker> mSCPQSetFetcher;
+    ItemFetcher<SCPQuorumSetPtr, QuorumSetTracker> mQuorumSetFetcher;
 
     friend class OverlayManagerTests;
 
@@ -83,8 +82,9 @@ class OverlayManagerImpl : public OverlayManager
     void connectToMorePeers(int max);
     Peer::pointer getRandomPeer() override;
 
-    void fetchTxSet(uint256 txSetHash, std::function<void(TxSetFramePtr const &txSet)> cb) override;
 
-    void fetchQuorumSet(uint256 qSetHash, std::function<void(TxSetFramePtr const &txSet)> cb) override;
+    TxSetTrackerPtr fetchTxSet(uint256 txSetHash, std::function<void(TxSetFramePtr const &txSet)> cb) override;
+
+    QuorumSetTrackerPtr fetchQuorumSet(uint256 qSetHash, std::function<void(SCPQuorumSetPtr const &txSet)> cb) override;
 };
 }

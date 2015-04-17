@@ -32,7 +32,7 @@
  *    GET_TX_SET, TX_SET, GET_SCP_QUORUMSET, SCP_QUORUMSET
  *
  * Anycasts are initiated and serviced two instances of ItemFetcher
- * (mTxSetFetcher and mSCPQSetFetcher). Anycast messages are sent to 
+ * (mTxSetFetcher and mQuorumSetFetcher). Anycast messages are sent to 
  * directly-connected peers, in sequence until satisfied. They are not 
  * flooded between peers.
  *
@@ -47,11 +47,16 @@ namespace stellar
 {
 
 class PeerRecord;
-
-typedef std::shared_ptr<SCPQuorumSet> SCPQuorumSetPtr;
-
 class TxSetFrame;
-typedef std::shared_ptr<TxSetFrame> TxSetFramePtr;
+class TxSetTracker;
+class QuorumSetTracker;
+
+using TxSetFramePtr = std::shared_ptr<TxSetFrame>;
+using TxSetTrackerPtr = std::shared_ptr<TxSetTracker>;
+
+using SCPQuorumSetPtr = std::shared_ptr<SCPQuorumSet>;
+using QuorumSetTrackerPtr = std::shared_ptr<QuorumSetTracker>;
+
 
 class OverlayManager
 {
@@ -116,13 +121,15 @@ class OverlayManager
     // Attempt to connect to a peer identified by peer record.
     virtual void connectTo(PeerRecord& pr) = 0;
 
+
     // Asks connected peer for the TxSet corresponding to this txSetHash.
     // Might invoke `cb` immediately if the TxSet is available in cache.
-    virtual void fetchTxSet(uint256 txSetHash, std::function<void(TxSetFramePtr const &txSet)> cb) = 0;
+    virtual TxSetTrackerPtr fetchTxSet(uint256 txSetHash, std::function<void(TxSetFramePtr const &txSet)> cb) = 0;
+
 
     // Asks connected peer for the quorum set corresponding to this qSetHash.
     // Might invoke `cb` immediately if the quorum set is available in cache.
-    virtual void fetchQuorumSet(uint256 qSetHash, std::function<void(TxSetFramePtr const &txSet)> cb) = 0;
+    virtual QuorumSetTrackerPtr fetchQuorumSet(uint256 qSetHash, std::function<void(SCPQuorumSetPtr const &txSet)> cb) = 0;
 
     virtual ~OverlayManager()
     {

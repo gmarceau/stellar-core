@@ -1,5 +1,4 @@
-#ifndef __ITEMFETCHER__
-#define __ITEMFETCHER__
+#pragma once
 
 // Copyright 2014 Stellar Development Foundation and contributors. Licensed
 // under the Apache License, Version 2.0. See the COPYING file at the root
@@ -8,23 +7,15 @@
 #include <map>
 #include <functional>
 #include "generated/SCPXDR.h"
-#include "overlay/OverlayManager.h"
-#include "herder/TxSetFrame.h"
 #include "overlay/Peer.h"
 #include "util/Timer.h"
 #include "util/NonCopyable.h"
 #include "lib/util/lrucache.hpp"
 #include <util/optional.h>
+#include "overlay/OverlayManager.h"
 
 /*
 Manages asking for Transaction or Quorum sets from Peers
-
-LATER: This abstraction can be cleaned up it is a bit wonky
-
-Asks for TransactionSets from our Peers
-We need to get these for SCP.
-Anywhere else? If someone asked you you can late reply to them
-
 */
 
 namespace medida
@@ -89,11 +80,11 @@ public:
         void tryNextPeer();
     };
 
-    using TrackerPtr = std::shared_ptr<Tracker>;
+    using TrackerPtr = std::shared_ptr<TrackerT>;
 
 protected:
     Application& mApp;
-    std::map<uint256, std::weak_ptr<Tracker>> mTrackers;
+    std::map<uint256, std::weak_ptr<TrackerT>> mTrackers;
     cache::lru_cache<uint256, T> mCache;
 
     // NB: There are many ItemFetchers in the system at once, but we are sharing
@@ -150,5 +141,3 @@ public:
 
 }
 
-
-#endif

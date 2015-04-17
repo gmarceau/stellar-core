@@ -821,7 +821,7 @@ SCPQuorumSetPtr
 HerderImpl::fetchSCPQuorumSet(uint256 const& qSetHash, bool askNetwork)
 {
     // TODO
-    //return mSCPQSetFetcher.fetchItem(qSetHash, askNetwork);
+    //return mQuorumSetFetcher.fetchItem(qSetHash, askNetwork);
     return nullptr;
 }
 
@@ -833,7 +833,7 @@ HerderImpl::recvSCPQuorumSet(SCPQuorumSetPtr qSet)
     //                      << "@" << hexAbbrev(getLocalNodeID()) << " qSet: "
     //                      << hexAbbrev(sha256(xdr::xdr_to_opaque(*qSet)));
 
-    //if (mSCPQSetFetcher.recvItem(qSet))
+    //if (mQuorumSetFetcher.recvItem(qSet))
     //{
     //    // someone cares about this set
     //    uint256 qSetHash = sha256(xdr::xdr_to_opaque(*qSet));
@@ -856,7 +856,7 @@ void
 HerderImpl::doesntHaveSCPQuorumSet(uint256 const& qSetHash, PeerPtr peer)
 {
     // TODO
-    //mSCPQSetFetcher.doesntHave(qSetHash, peer);
+    //mQuorumSetFetcher.doesntHave(qSetHash, peer);
 }
 
 bool

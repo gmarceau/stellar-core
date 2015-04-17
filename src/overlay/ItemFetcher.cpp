@@ -3,14 +3,9 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "overlay/ItemFetcher.h"
-#include "crypto/SHA.h"
 #include "main/Application.h"
 #include "overlay/OverlayManager.h"
-#include "util/Logging.h"
-
-#include "medida/counter.h"
 #include "medida/metrics_registry.h"
-#include "xdrpp/marshal.h"
 
 #define MS_TO_WAIT_FOR_FETCH_REPLY 500
 
