@@ -15,8 +15,8 @@
 namespace stellar
 {
 
-Node::Node(uint256 const& nodeID, SCP* SCP, int cacheCapacity)
-    : mNodeID(nodeID), mSCP(SCP), mCache(cacheCapacity)
+Node::Node(uint256 const& nodeID, SCP* SCP)
+    : mNodeID(nodeID), mSCP(SCP), mCache(4)
 {
 }
 
@@ -136,14 +136,14 @@ template bool Node::isQuorumTransitive<SCPStatement>(
     std::function<bool(uint256 const&, SCPStatement const&)> const& filter);
 
 SCPQuorumSet const&
-Node::retrieveQuorumSet(uint256 const& qSetHash)
+Node::retrieveQuorumSet(Hash const& qSetHash)
 {
     // Notify that we touched this node.
     mSCP->nodeTouched(mNodeID);
 
-    if (mCache.exists(0)) // TODO
+    if (mCache.exists(qSetHash))
     {
-        return mCache.get(0); // TODO
+        return mCache.get(qSetHash);
     }
 
     CLOG(DEBUG, "SCP") << "Node::retrieveQuorumSet"
@@ -161,7 +161,7 @@ Node::cacheQuorumSet(SCPQuorumSet const& qSet)
                        << "@" << hexAbbrev(mNodeID)
                        << " qSet: " << hexAbbrev(qSetHash);
 
-    mCache.put(0, qSet); // TODO
+    mCache.put(qSetHash, qSet);
 }
 
 uint256 const&

@@ -271,17 +271,14 @@ void
 Peer::recvGetTxSet(StellarMessage const& msg)
 {
     auto self = shared_from_this();
-    auto hasItem = mApp.getOverlayManager().getTxSetFetcher().get(msg.txSetHash(), [&self](TxSetFrame const &txSet_)
+    if (auto txSet = mApp.getOverlayManager().getTxSetFetcher().get(msg.txSetHash()))
     {
-        TxSetFrame txSet = txSet_;
         StellarMessage newMsg;
         newMsg.type(TX_SET);
-        txSet.toXDR(newMsg.txSet());
+        txSet->toXDR(newMsg.txSet());
 
         self->sendMessage(newMsg);
-    });
-
-    if (!hasItem)
+    } else
     {
         sendDontHave(TX_SET, msg.txSetHash());
     }
@@ -313,13 +310,16 @@ Peer::recvTransaction(StellarMessage const& msg)
 void
 Peer::recvGetSCPQuorumSet(StellarMessage const& msg)
 {
-    bool hasItem =
-        mApp.getOverlayManager().getQuorumSetFetcher().get(msg.qSetHash(), [&](SCPQuorumSet const &qSet)
-    {
-        sendSCPQuorumSet(qSet);
-    });
+    auto localQSet = mApp.getConfig().quorumSet();
+    auto localHash = sha256(xdr::xdr_to_opaque(localQSet));
 
-    if (!hasItem)
+    if (msg.qSetHash() == localHash)
+    {
+        sendSCPQuorumSet(localQSet);
+    } else if (auto qSet = mApp.getOverlayManager().getQuorumSetFetcher().get(msg.qSetHash()))
+    {
+        sendSCPQuorumSet(*qSet);
+    } else
     {
         CLOG(TRACE, "Overlay")
             << "No quorum set: " << hexAbbrev(msg.qSetHash());

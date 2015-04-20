@@ -62,7 +62,7 @@ OverlayManagerImpl::OverlayManagerImpl(Application& app)
     , mTimer(app)
     , mTxSetFetcher(app, 400) // TODO
     , mQuorumSetFetcher(app, 400) // TODO 
-    , mFloodGate(app) // TODO
+    , mFloodGate(app)
 {
     mTimer.expires_from_now(std::chrono::seconds(2));
 
@@ -76,13 +76,6 @@ OverlayManagerImpl::OverlayManagerImpl(Application& app)
             },
             VirtualTimer::onFailureNoop);
     }
-
-    // Inject our local qSet in the SCPQSetFetcher.
-    //  TODO
-//    SCPQuorumSetPtr qSet =
-//        std::make_shared<SCPQuorumSet>(std::move(quorumSetFromApp(mApp)));
-//    recvSCPQuorumSet(qSet);
-
 }
 
 OverlayManagerImpl::~OverlayManagerImpl()

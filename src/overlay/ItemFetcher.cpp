@@ -30,16 +30,15 @@ ItemFetcher<T, TrackerT>::ItemFetcher(Application& app, size_t cacheSize) :
 {}
 
 template<class T, class TrackerT>
-bool
-ItemFetcher<T, TrackerT>::get(uint256 hash, std::function<void(T const &item)> cb)
+optional<T> 
+ItemFetcher<T, TrackerT>::get(uint256 hash)
 {
     if (mCache.exists(hash))
     {
-        cb(mCache.get(hash));
-        return true;
+        return make_optional<T>(mCache.get(hash));
     } else
     {
-        return false;
+        return nullopt<T>();
     }
 
 }
@@ -48,8 +47,9 @@ template<class T, class TrackerT>
 typename ItemFetcher<T, TrackerT>::TrackerPtr
 ItemFetcher<T, TrackerT>::getOrFetch(uint256 itemID, std::function<void(T const &item)> cb)
 {
-    if (get(itemID, cb))
+    if (auto item = get(itemID))
     {
+        cb(*item);
         return nullptr;
     }
     {
@@ -99,8 +99,6 @@ ItemFetcher<T, TrackerT>::recv(uint256 itemID, T item)
         tracker->recv(item);
     }
 }
-
-
 
 template<class T, class TrackerT>
 optional<typename ItemFetcher<T, TrackerT>::Tracker>
