@@ -29,8 +29,8 @@ public:
     
     optional<SCPEnvelope> pop(uint64 slotIndex);
 
-    TxSetFramePtr getTxSet(Hash txSetHash, bool askNetwork);
-    TxSetFramePtr getQuorumSet(Hash qSetHash, bool askNetwork);
+//    TxSetFramePtr getTxSet(Hash txSetHash, bool askNetwork);
+//    TxSetFramePtr getQuorumSet(Hash qSetHash, bool askNetwork);
 
 
     bool isFutureCommitted(uint64 slotIndex);

@@ -13,6 +13,7 @@
 #include "generated/StellarXDR.h"
 #include "overlay/OverlayManager.h"
 #include "util/Timer.h"
+#include "herder/TxSetFrame.h"
 
 namespace medida
 {
@@ -25,6 +26,7 @@ Maintain the set of peers we are connected to
 */
 namespace stellar
 {
+
 
 class OverlayManagerImpl : public OverlayManager
 {
@@ -50,8 +52,8 @@ class OverlayManagerImpl : public OverlayManager
     bool isPeerPreferred(Peer::pointer peer);
 
 
-    ItemFetcher<TxSetFramePtr, TxSetTracker> mTxSetFetcher;
-    ItemFetcher<SCPQuorumSetPtr, QuorumSetTracker> mQuorumSetFetcher;
+    ItemFetcher<TxSetFrame, TxSetTracker> mTxSetFetcher;
+    ItemFetcher<SCPQuorumSet, QuorumSetTracker> mQuorumSetFetcher;
 
     friend class OverlayManagerTests;
 
@@ -65,7 +67,6 @@ class OverlayManagerImpl : public OverlayManager
     void recvFloodedMsg(StellarMessage const& msg, Peer::pointer peer) override;
     void broadcastMessage(StellarMessage const& msg,
                           bool force = false) override;
-
     void connectTo(std::string const& addr) override;
     virtual void connectTo(PeerRecord& pr) override;
 
@@ -82,9 +83,8 @@ class OverlayManagerImpl : public OverlayManager
     void connectToMorePeers(int max);
     Peer::pointer getRandomPeer() override;
 
+    ItemFetcher<TxSetFrame, TxSetTracker> & getTxSetFetcher() override;
+    ItemFetcher<SCPQuorumSet, QuorumSetTracker> & getQuorumSetFetcher() override;
 
-    TxSetTrackerPtr fetchTxSet(uint256 txSetHash, std::function<void(TxSetFramePtr const &txSet)> cb) override;
-
-    QuorumSetTrackerPtr fetchQuorumSet(uint256 qSetHash, std::function<void(SCPQuorumSetPtr const &txSet)> cb) override;
 };
 }

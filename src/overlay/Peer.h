@@ -70,7 +70,7 @@ class Peer : public std::enable_shared_from_this<Peer>
     void recvSCPMessage(StellarMessage const& msg);
 
     void sendHello();
-    void sendSCPQuorumSet(SCPQuorumSetPtr qSet);
+    void sendSCPQuorumSet(SCPQuorumSet const & qSet);
     void sendDontHave(MessageType type, uint256 const& itemID);
     void sendPeers();
 

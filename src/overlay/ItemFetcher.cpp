@@ -6,6 +6,8 @@
 #include "main/Application.h"
 #include "overlay/OverlayManager.h"
 #include "medida/metrics_registry.h"
+#include "herder/TxSetFrame.h"
+#include "generated/StellarXDR.h"
 
 #define MS_TO_WAIT_FOR_FETCH_REPLY 500
 
@@ -29,7 +31,7 @@ ItemFetcher<T, TrackerT>::ItemFetcher(Application& app, size_t cacheSize) :
 
 template<class T, class TrackerT>
 bool
-ItemFetcher<T, TrackerT>::get(uint256 hash, std::function<void(T item)> cb)
+ItemFetcher<T, TrackerT>::get(uint256 hash, std::function<void(T const &item)> cb)
 {
     if (mCache.exists(hash))
     {
@@ -43,8 +45,8 @@ ItemFetcher<T, TrackerT>::get(uint256 hash, std::function<void(T item)> cb)
 }
 
 template<class T, class TrackerT>
-optional<typename ItemFetcher<T, TrackerT>::Tracker> 
-ItemFetcher<T, TrackerT>::getOrFetch(uint256 itemID, std::function<void(T item)> cb)
+typename ItemFetcher<T, TrackerT>::TrackerPtr
+ItemFetcher<T, TrackerT>::getOrFetch(uint256 itemID, std::function<void(T const &item)> cb)
 {
     if (get(itemID, cb))
     {
@@ -57,7 +59,7 @@ ItemFetcher<T, TrackerT>::getOrFetch(uint256 itemID, std::function<void(T item)>
 
 template<class T, class TrackerT>
 typename ItemFetcher<T, TrackerT>::TrackerPtr
-ItemFetcher<T, TrackerT>::fetch(uint256 itemID, std::function<void(T item)> cb)
+ItemFetcher<T, TrackerT>::fetch(uint256 itemID, std::function<void(T const &item)> cb)
 {
     auto entry = mTrackers.find(itemID);
     TrackerPtr tracker;
@@ -234,7 +236,7 @@ void ItemFetcher<T, TrackerT>::Tracker::cancel()
 }
 
 template<class T, class TrackerT>
-void ItemFetcher<T, TrackerT>::Tracker::listen(std::function<void(T item)> cb)
+void ItemFetcher<T, TrackerT>::Tracker::listen(std::function<void(T const &item)> cb)
 {
     mCallbacks.push_back(cb);
 }
@@ -250,8 +252,8 @@ void QuorumSetTracker::askPeer(Peer::pointer peer)
     peer->sendGetQuorumSet(mItemID);
 }
 
-template ItemFetcher<TxSetFramePtr, TxSetTracker>;
-template ItemFetcher<SCPQuorumSetPtr, QuorumSetTracker>;
 
+template class ItemFetcher<TxSetFrame, TxSetTracker>;
+template class ItemFetcher<SCPQuorumSet, QuorumSetTracker>;
 
 }

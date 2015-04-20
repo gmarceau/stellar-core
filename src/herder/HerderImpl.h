@@ -9,7 +9,7 @@
 #include "herder/Herder.h"
 #include "scp/SCP.h"
 #include "util/Timer.h"
-#include <overlay/FetchableItem.h>
+#include <overlay/ItemFetcher.h>
 #include "PendingEnvelopes.h"
 
 namespace medida
@@ -41,6 +41,7 @@ class HerderImpl : public Herder, public SCP
 
     // Bootstraps the HerderImpl if we're creating a new Network
     void bootstrap() override;
+    void fetchTxSet(Hash tx_set_hash, std::function<void(TxSetFrame const & txSet)> cb);
 
     // SCP methods
     void validateValue(uint64 const& slotIndex, uint256 const& nodeID,
@@ -64,7 +65,7 @@ class HerderImpl : public Herder, public SCP
         uint256 const& nodeID, Hash const& qSetHash,
         std::function<void(SCPQuorumSet const&)> const& cb) override;
     void emitEnvelope(SCPEnvelope const& envelope) override;
-
+    bool recvTransactions(TxSetFrame &txSet);
     // Extra SCP methods overridden solely to increment metrics.
     void ballotDidPrepare(uint64 const& slotIndex,
                           SCPBallot const& ballot) override;
@@ -77,16 +78,6 @@ class HerderImpl : public Herder, public SCP
     void envelopeSigned() override;
     void envelopeVerified(bool) override;
 
-    // Herder methods
-    TxSetFramePtr fetchTxSet(uint256 const& txSetHash,
-                             bool askNetwork) override;
-    void recvTxSet(TxSetFramePtr txSet) override;
-    void doesntHaveTxSet(uint256 const& txSethash, PeerPtr peer) override;
-
-    SCPQuorumSetPtr fetchSCPQuorumSet(uint256 const& qSetHash,
-                                      bool askNetwork) override;
-    void recvSCPQuorumSet(SCPQuorumSetPtr qSet) override;
-    void doesntHaveSCPQuorumSet(uint256 const& qSetHash, PeerPtr peer) override;
 
     // returns whether the transaction should be flooded
     bool recvTransaction(TransactionFramePtr tx) override;
@@ -133,7 +124,8 @@ class HerderImpl : public Herder, public SCP
              std::map<uint256, std::vector<std::shared_ptr<VirtualTimer>>>>
         mBallotValidationTimers;
 
-    std::map<uint64, std::vector<SCPEnvelope>> mQuorumAheadOfUs;
+    std::map<uint256, TxSetTrackerPtr> mTxSetFetches;
+    std::map<uint256, QuorumSetTrackerPtr> mQuorumSetFetches;
 
     void herderOutOfSync();
 

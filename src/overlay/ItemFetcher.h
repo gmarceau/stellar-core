@@ -12,7 +12,6 @@
 #include "util/NonCopyable.h"
 #include "lib/util/lrucache.hpp"
 #include <util/optional.h>
-#include "overlay/OverlayManager.h"
 
 /*
 Manages asking for Transaction or Quorum sets from Peers
@@ -41,6 +40,11 @@ struct hash<stellar::uint256>
 
 namespace stellar
 {
+class TxSetFrame;
+struct SCPQuorumSet;
+using TxSetFramePtr = std::shared_ptr<TxSetFrame>;
+using SCPQuorumSetPtr = std::shared_ptr<SCPQuorumSet>;
+
 
 
 template<class T, class TrackerT>
@@ -49,7 +53,6 @@ class ItemFetcher : private NonMovableOrCopyable
 public:
     class Tracker : private NonMovableOrCopyable
     {
-    private:
         Application &mApp;
         ItemFetcher &mItemFetcher;
         Peer::pointer mLastAskedPeer;
@@ -71,7 +74,7 @@ public:
         bool isItemFound();
         T get();
         void cancel();
-        void listen(std::function<void(T item)> cb);
+        void listen(std::function<void(T const &item)> cb);
 
         virtual void askPeer(Peer::pointer peer) = 0;
 
@@ -100,7 +103,7 @@ protected:
 
     // Hand the item to `cb` if available in the cache and returns true,
     // else returns false
-    bool get(uint256 itemID, std::function<void(T item)> cb);
+    bool get(uint256 itemID, std::function<void(T const & item)> cb);
 
     // Start fetching the item and returns a tracker with `cb` registered 
     // with the tracker). Releasing all shared_ptr references
@@ -110,9 +113,12 @@ protected:
     // memory, as it can be called anytime in the future between now and a 
     // call `cancel`, including much later if there are other references to this
     // tracker.
-    TrackerPtr fetch(uint256 itemID, std::function<void(T item)> cb);
+    TrackerPtr fetch(uint256 itemID, std::function<void(T const & item)> cb);
 
-    optional<Tracker> getOrFetch(uint256 itemID, std::function<void(T item)> cb);
+
+    // Hands to item immediately to `cb` if available in cache and returns `nullptr`,
+    // else starts fetching the item and returns a tracker.
+    TrackerPtr getOrFetch(uint256 itemID, std::function<void(T const & item)> cb);
 
     void doesntHave(uint256 const& itemID, Peer::pointer peer);
     void recv(uint256 itemID, T item);
@@ -120,24 +126,26 @@ protected:
     optional<Tracker> isNeeded(uint256 itemID);
 };
 
-class TxSetTracker : public ItemFetcher<TxSetFramePtr, TxSetTracker>::Tracker
+class TxSetTracker : public ItemFetcher<TxSetFrame, TxSetTracker>::Tracker
 {
 public:
-    TxSetTracker(Application &app, uint256 id, ItemFetcher<TxSetFramePtr, TxSetTracker> &itemFetcher) :
+    TxSetTracker(Application &app, uint256 id, ItemFetcher<TxSetFrame, TxSetTracker> &itemFetcher) :
         Tracker(app, id, itemFetcher) {}
 
     void askPeer(Peer::pointer peer) override;
 };
 
-class QuorumSetTracker : public ItemFetcher<SCPQuorumSetPtr, QuorumSetTracker>::Tracker
+class QuorumSetTracker : public ItemFetcher<SCPQuorumSet, QuorumSetTracker>::Tracker
 {
 public:
-    QuorumSetTracker(Application &app, uint256 id, ItemFetcher<SCPQuorumSetPtr, QuorumSetTracker> &itemFetcher) :
+    QuorumSetTracker(Application &app, uint256 id, ItemFetcher<SCPQuorumSet, QuorumSetTracker> &itemFetcher) :
         Tracker(app, id, itemFetcher) {}
 
     void askPeer(Peer::pointer peer) override;
 };
 
+using TxSetTrackerPtr = ItemFetcher<TxSetFrame, TxSetTracker>::TrackerPtr;
+using QuorumSetTrackerPtr = ItemFetcher<SCPQuorumSet, QuorumSetTracker>::TrackerPtr;
 
 }
 

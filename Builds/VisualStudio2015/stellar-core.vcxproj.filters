@@ -417,6 +417,9 @@
     <ClCompile Include="..\..\src\herder\PendingEnvelopes.cpp">
       <Filter>herder</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\bucket\FutureBucket.cpp">
+      <Filter>bucket</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -427,9 +430,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\main\Application.h">
       <Filter>main</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\overlay\FetchableItem.h">
-      <Filter>overlay</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\overlay\Floodgate.h">
       <Filter>overlay</Filter>

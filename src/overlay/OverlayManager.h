@@ -6,6 +6,7 @@
 
 #include "generated/StellarXDR.h"
 #include "overlay/Peer.h"
+#include "ItemFetcher.h"
 
 /**
  * OverlayManager maintains a virtual broadcast network, consisting of a set of
@@ -47,15 +48,6 @@ namespace stellar
 {
 
 class PeerRecord;
-class TxSetFrame;
-class TxSetTracker;
-class QuorumSetTracker;
-
-using TxSetFramePtr = std::shared_ptr<TxSetFrame>;
-using TxSetTrackerPtr = std::shared_ptr<TxSetTracker>;
-
-using SCPQuorumSetPtr = std::shared_ptr<SCPQuorumSet>;
-using QuorumSetTrackerPtr = std::shared_ptr<QuorumSetTracker>;
 
 
 class OverlayManager
@@ -122,14 +114,9 @@ class OverlayManager
     virtual void connectTo(PeerRecord& pr) = 0;
 
 
-    // Asks connected peer for the TxSet corresponding to this txSetHash.
-    // Might invoke `cb` immediately if the TxSet is available in cache.
-    virtual TxSetTrackerPtr fetchTxSet(uint256 txSetHash, std::function<void(TxSetFramePtr const &txSet)> cb) = 0;
+    virtual ItemFetcher<TxSetFrame, TxSetTracker> & getTxSetFetcher() = 0;
+    virtual ItemFetcher<SCPQuorumSet, QuorumSetTracker> & getQuorumSetFetcher() = 0;
 
-
-    // Asks connected peer for the quorum set corresponding to this qSetHash.
-    // Might invoke `cb` immediately if the quorum set is available in cache.
-    virtual QuorumSetTrackerPtr fetchQuorumSet(uint256 qSetHash, std::function<void(SCPQuorumSetPtr const &txSet)> cb) = 0;
 
     virtual ~OverlayManager()
     {

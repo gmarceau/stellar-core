@@ -1,6 +1,7 @@
 ﻿#include "PendingEnvelopes.h"
 #include "main/Application.h"
 #include "herder/HerderImpl.h"
+#include "crypto/Hex.h"
 
 namespace stellar
 {
@@ -90,42 +91,13 @@ optional<SCPEnvelope> PendingEnvelopes::pop(uint64 slotIndex)
     }
 }
 
-TxSetFramePtr PendingEnvelopes::getTxSet(Hash txSetHash, bool askNetwork)
-{
-    // TODO
-    return nullptr;
-}
 
-TxSetFramePtr PendingEnvelopes::getQuorumSet(Hash qSetHash, bool askNetwork)
-{
-    // TODO
-    return nullptr;
-}
-
-    // returns true if we have been left behind :(
+// returns true if we have been left behind :(
 // see: walter the lazy mouse
 bool
 PendingEnvelopes::isFutureCommitted(uint64 slotIndex)
 {
     return mIsFutureCommitted.find(slotIndex) != mIsFutureCommitted.end();
-}
-
-void PendingEnvelopes::dumpInfo(Json::Value & ret)
-{
-    // TODO
-
-    //count = 0;
-    //for (auto& item : mQuorumAheadOfUs)
-    //{
-    //    for (auto& envelope : item.second)
-    //    {
-    //        std::ostringstream output;
-    //        output << "i:" << item.first
-    //            << " n:" << binToHex(envelope.nodeID).substr(0, 6);
-
-    //        ret["ahead"][count++] = output.str();
-    //    }
-    //}
 }
 
 bool
@@ -156,6 +128,23 @@ PendingEnvelopes::checkFutureCommitted(SCPEnvelope newEnvelope)
         }
     }
     return false;
+}
+
+
+void PendingEnvelopes::dumpInfo(Json::Value & ret)
+{
+    int count = 0;
+    for (auto& entry : mEnvelopes)
+    {
+        for (auto& envelope : entry.second)
+        {
+            std::ostringstream output;
+            output << "i:" << entry.first
+                << " n:" << binToHex(envelope.nodeID).substr(0, 6);
+
+            ret["pending"][count++] = output.str();
+        }
+    }
 }
 
 

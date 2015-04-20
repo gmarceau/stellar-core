@@ -76,6 +76,13 @@ OverlayManagerImpl::OverlayManagerImpl(Application& app)
             },
             VirtualTimer::onFailureNoop);
     }
+
+    // Inject our local qSet in the SCPQSetFetcher.
+    //  TODO
+//    SCPQuorumSetPtr qSet =
+//        std::make_shared<SCPQuorumSet>(std::move(quorumSetFromApp(mApp)));
+//    recvSCPQuorumSet(qSet);
+
 }
 
 OverlayManagerImpl::~OverlayManagerImpl()
@@ -272,20 +279,6 @@ OverlayManagerImpl::getRandomPeer()
     return Peer::pointer();
 }
 
-TxSetTrackerPtr
-OverlayManagerImpl::fetchTxSet(
-    uint256 txSetHash, 
-    std::function<void(TxSetFramePtr const& txSet)> cb)
-{
-    return mTxSetFetcher.fetch(txSetHash, cb);
-}
-
-QuorumSetTrackerPtr 
-OverlayManagerImpl::fetchQuorumSet(uint256 qSetHash, std::function<void(SCPQuorumSetPtr const& txSet)> cb)
-{
-    return mQuorumSetFetcher.fetch(qSetHash, cb);
-}
-
 
     // returns NULL if the passed peer isn't found
 Peer::pointer
@@ -323,4 +316,16 @@ OverlayManager::dropAll(Database& db)
 {
     PeerRecord::dropAll(db);
 }
+
+
+ItemFetcher<TxSetFrame, TxSetTracker> & OverlayManagerImpl::getTxSetFetcher()
+{
+    return mTxSetFetcher;
+}
+
+ItemFetcher<SCPQuorumSet, QuorumSetTracker> & OverlayManagerImpl::getQuorumSetFetcher()
+{
+    return mQuorumSetFetcher;
+}
+
 }
