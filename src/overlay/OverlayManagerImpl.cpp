@@ -273,20 +273,20 @@ OverlayManagerImpl::getRandomPeer()
 }
 
 
-    // returns NULL if the passed peer isn't found
+// returns NULL if the passed peer isn't found
 Peer::pointer
 OverlayManagerImpl::getNextPeer(Peer::pointer peer)
 {
-    for (unsigned int n = 0; n < mPeers.size(); n++)
+    auto index = std::find(mPeers.begin(), mPeers.end(), peer);
+    if (mPeers.empty() || index == mPeers.end())
     {
-        if (mPeers[n] == peer)
-        {
-            if (n == mPeers.size() - 1)
-                return mPeers[0];
-            return (mPeers[n + 1]);
-        }
+        return nullptr;
+    } else if (index + 1 == mPeers.end())
+    {
+        return mPeers.front();
     }
-    return Peer::pointer();
+    else
+        return *(index + 1);
 }
 
 void

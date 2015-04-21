@@ -5,11 +5,11 @@
 #include "overlay/ItemFetcher.h"
 #include "main/Application.h"
 #include "overlay/OverlayManager.h"
+#include "util/Logging.h"
 #include "medida/metrics_registry.h"
 #include "herder/TxSetFrame.h"
 #include "generated/StellarXDR.h"
-
-#define MS_TO_WAIT_FOR_FETCH_REPLY 500
+#include <crypto/Hex.h>
 
 // TODO.1 I think we need to add something that after some time it retries to
 // fetch qsets that it really needs.
@@ -67,13 +67,13 @@ ItemFetcher<T, TrackerT>::fetch(uint256 itemID, std::function<void(T const &item
     if (entry == mTrackers.end())
     {
         tracker = std::make_shared<TrackerT>(mApp, itemID, *this);
-        tracker->listen(cb);
         mTrackers[itemID] = tracker;
     } else
     {
         tracker = entry->second.lock();
     }
 
+    tracker->listen(cb);
     tracker->tryNextPeer();
     return tracker;
 }
@@ -96,7 +96,9 @@ ItemFetcher<T, TrackerT>::recv(uint256 itemID, T item)
 {
     if (auto tracker = isNeeded(itemID))
     {
+        mCache.put(itemID, item);
         tracker->recv(item);
+        mTrackers.erase(itemID);
     }
 }
 
@@ -177,12 +179,14 @@ ItemFetcher<T, TrackerT>::Tracker::tryNextPeer()
         if (mPeersAsked.size())
         {
             while (!peer && mPeersAsked.size())
-            { // keep looping till we find a peer
-                // we are still connected to
-                peer = mApp.getOverlayManager().getNextPeer(
-                    mPeersAsked[mPeersAsked.size() - 1]);
+            { 
+                peer = mApp.getOverlayManager().getNextPeer(mPeersAsked.back());
                 if (!peer)
+                {
+                    // no longer connected to this peer.
+                    // try another.
                     mPeersAsked.pop_back();
+                }
             }
         }
         else
@@ -190,37 +194,26 @@ ItemFetcher<T, TrackerT>::Tracker::tryNextPeer()
             peer = mApp.getOverlayManager().getRandomPeer();
         }
 
-        if (peer)
-        {
-            if (find(mPeersAsked.begin(), mPeersAsked.end(), peer) ==
-                mPeersAsked.end())
-            { // we have never asked this guy
-                askPeer(peer);
-
-                mLastAskedPeer = peer;
-                mPeersAsked.push_back(peer);
-            }
-
-            mTimer.cancel(); // cancel any stray timers
-            mTimer.expires_from_now(
-                std::chrono::milliseconds(MS_TO_WAIT_FOR_FETCH_REPLY));
-            mTimer.async_wait([this]()
-            {
-                this->tryNextPeer();
-            }, VirtualTimer::onFailureNoop);
-        }
-        else
-        { // we have asked all our peers
+        std::chrono::milliseconds nextTry;
+        if (!peer || find(mPeersAsked.begin(), mPeersAsked.end(), peer) != mPeersAsked.end())
+        {   // we have asked all our peers
             // clear list and try again in a bit
             mPeersAsked.clear();
-            mTimer.cancel(); // cancel any stray timers
-            mTimer.expires_from_now(
-                std::chrono::milliseconds(MS_TO_WAIT_FOR_FETCH_REPLY * 2));
-            mTimer.async_wait([this]()
-            {
-                this->tryNextPeer();
-            }, VirtualTimer::onFailureNoop);
+            nextTry = MS_TO_WAIT_FOR_FETCH_REPLY * 2;
+        } else
+        {
+            askPeer(peer);
+
+            mLastAskedPeer = peer;
+            mPeersAsked.push_back(peer);
+
         }
+
+        mTimer.expires_from_now(nextTry);
+        mTimer.async_wait([this]()
+        {
+            this->tryNextPeer();
+        }, VirtualTimer::onFailureNoop);
     }
 }
 
@@ -249,6 +242,14 @@ void QuorumSetTracker::askPeer(Peer::pointer peer)
 {
     peer->sendGetQuorumSet(mItemID);
 }
+
+void IntTracker::askPeer(Peer::pointer peer)
+{
+    CLOG(INFO, "Overlay") << "asked for " << hexAbbrev(mItemID);
+    mAsked.push_back(peer);
+}
+
+template class ItemFetcher<int, IntTracker>;
 
 
 template class ItemFetcher<TxSetFrame, TxSetTracker>;

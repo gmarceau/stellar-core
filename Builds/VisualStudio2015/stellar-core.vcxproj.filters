@@ -85,6 +85,9 @@
     <Filter Include="herder\docs">
       <UniqueIdentifier>{aa45d521-588a-4f8f-b737-d3667c7d9404}</UniqueIdentifier>
     </Filter>
+    <Filter Include="overlay\tests">
+      <UniqueIdentifier>{63688140-a05e-46b5-9fbc-db9126c0859c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\ledger\LedgerManagerImpl.cpp">
@@ -333,9 +336,6 @@
     <ClCompile Include="..\..\src\util\Math.cpp">
       <Filter>util</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\overlay\OverlayManagerTests.cpp">
-      <Filter>overlay</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\history\CatchupStateMachine.cpp">
       <Filter>history</Filter>
     </ClCompile>
@@ -353,9 +353,6 @@
     </ClCompile>
     <ClCompile Include="..\..\src\herder\HerderTests.cpp">
       <Filter>herder\tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\overlay\PeerRecordTests.cpp">
-      <Filter>overlay</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\overlay\PeerRecord.cpp">
       <Filter>overlay</Filter>
@@ -396,9 +393,6 @@
     <ClCompile Include="..\..\src\scp\Slot.cpp">
       <Filter>scp</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\overlay\TCPPeerTests.cpp">
-      <Filter>overlay</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\util\Fs.cpp">
       <Filter>util</Filter>
     </ClCompile>
@@ -422,6 +416,18 @@
     </ClCompile>
     <ClCompile Include="..\..\src\util\HashOfHash.cpp">
       <Filter>util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\overlay\ItemFetcherTests.cpp">
+      <Filter>overlay\tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\overlay\OverlayManagerTests.cpp">
+      <Filter>overlay\tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\overlay\PeerRecordTests.cpp">
+      <Filter>overlay\tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\overlay\TCPPeerTests.cpp">
+      <Filter>overlay\tests</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

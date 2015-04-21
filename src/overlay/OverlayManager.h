@@ -77,10 +77,10 @@ class OverlayManager
     // Return a random peer from the set of connected peers.
     virtual Peer::pointer getRandomPeer() = 0;
 
-    // Return the peer following the provided peer, in the set of connected
-    // peers.
+    // Returns the peer following the provided peer, in the set of connected
+    // peers, looping to the beginning if needed.
     // Returns a `nullptr`-valued pointer if the provided peer is not part of
-    // the in-memory peer set, or is the last peer in the set.
+    // the in-memory peer set.
     virtual Peer::pointer getNextPeer(Peer::pointer peer) = 0;
 
     // Return an already-connected peer at the given ip address and port;

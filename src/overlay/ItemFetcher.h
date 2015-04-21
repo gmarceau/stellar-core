@@ -30,7 +30,7 @@ struct SCPQuorumSet;
 using TxSetFramePtr = std::shared_ptr<TxSetFrame>;
 using SCPQuorumSetPtr = std::shared_ptr<SCPQuorumSet>;
 
-
+static std::chrono::milliseconds const MS_TO_WAIT_FOR_FETCH_REPLY{ 500 };
 
 template<class T, class TrackerT>
 class ItemFetcher : private NonMovableOrCopyable
@@ -128,8 +128,20 @@ public:
     void askPeer(Peer::pointer peer) override;
 };
 
+
+class IntTracker : public ItemFetcher<int, IntTracker>::Tracker
+{
+public:
+    std::vector<Peer::pointer> mAsked;
+    IntTracker(Application &app, uint256 id, ItemFetcher<int, IntTracker> &itemFetcher) :
+        Tracker(app, id, itemFetcher) {}
+
+    void askPeer(Peer::pointer peer) override;
+};
+
 using TxSetTrackerPtr = ItemFetcher<TxSetFrame, TxSetTracker>::TrackerPtr;
 using QuorumSetTrackerPtr = ItemFetcher<SCPQuorumSet, QuorumSetTracker>::TrackerPtr;
+using IntTrackerPtr = ItemFetcher<int, IntTracker>::TrackerPtr;
 
 }
 

@@ -60,6 +60,7 @@ FMT_SRCS =                                      \
     src/main/test.cpp                           \
     src/overlay/Floodgate.cpp                   \
     src/overlay/ItemFetcher.cpp                 \
+    src/overlay/ItemFetcherTests.cpp            \
     src/overlay/LoopbackPeer.cpp                \
     src/overlay/OverlayTests.cpp                \
     src/overlay/Peer.cpp                        \
