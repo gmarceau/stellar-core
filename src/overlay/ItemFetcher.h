@@ -73,12 +73,14 @@ public:
       
     explicit ItemFetcher(Application& app, size_t cacheSize);
 
-    // Hand the item if available in the cache else returns nullopt.
+    // Return the item if available in the cache, else returns nullopt.
     optional<T> get(uint256 itemID);
 
     // Start fetching the item and returns a tracker with `cb` registered 
     // with the tracker). Releasing all shared_ptr references
     // to the tracker will cancel the fetch.
+    // 
+    // The fetch might complete immediately if the item is in the cache.
     //
     // The callback must be idempoten and without dependencies on allocated
     // memory, as it can be called anytime in the future between now and a 
@@ -92,10 +94,16 @@ public:
     TrackerPtr getOrFetch(uint256 itemID, std::function<void(T const & item)> cb);
 
     void doesntHave(uint256 const& itemID, Peer::pointer peer);
-    void recv(uint256 itemID, T item);
+
+    // recv: notifies all listeners of the arrival of the item and caches it if 
+    // it was needed
+    void recv(uint256 itemID, T const & item);
+
+    // cache: notifies all listeneers of the arrival of the item and caches it 
+    // unconditionaly
+    void cache(Hash itemID, T const & item);
 
     optional<Tracker> isNeeded(uint256 itemID);
-
 
 protected:
     Application& mApp;

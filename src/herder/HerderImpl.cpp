@@ -256,23 +256,17 @@ HerderImpl::validateValue(uint64 const& slotIndex, uint256 const& nodeID,
 
 void HerderImpl::fetchTxSet(Hash txSetHash, std::function<void(TxSetFrame const & txSet)> cb)
 {
-    auto tracker = mApp.getOverlayManager().getTxSetFetcher().getOrFetch(txSetHash, cb);
-    if (tracker)
+    auto tracker = mApp.getOverlayManager().getTxSetFetcher().fetch(txSetHash, [&](TxSetFrame const &txSet_)
     {
-        mTxSetFetches[txSetHash] = tracker;
+        // add all txs to the next set in case they don't get in this ledger
+        TxSetFrame txSet = txSet_; //  remove const
+        recvTransactions(txSet);
 
-        tracker->listen([&](TxSetFrame const &txSet_)
-        {
-            mTxSetFetches.erase(txSetHash);
+        cb(txSet);
+    });
 
-            // add all txs to next set in case they don't get in this ledger
-            TxSetFrame txSet = txSet_; //  remove const
-            recvTransactions(txSet);
-        });
-    }
-    
+    mTxSetFetches[txSetHash] = tracker;
 }
-
 
 int
 HerderImpl::compareValues(uint64 const& slotIndex, uint32 const& ballotCounter,
@@ -582,7 +576,7 @@ HerderImpl::valueExternalized(uint64 const& slotIndex, Value const& value)
     mTrackingSCP = make_unique<ConsensusData>(slotIndex, b);
     trackingHeartBeat();
 
-    //// we don't need to keep fetching any of the other TX sets
+    // we don't need to keep fetching any of the other TX sets
     auto txSetTracker = mTxSetFetches[b.value.txSetHash];
     mTxSetFetches.clear();
 
@@ -1060,7 +1054,10 @@ HerderImpl::triggerNextLedger()
         removeReceivedTx(tx);
     }
 
+    // add all txs to next set in case they don't get in this ledger
     recvTransactions(*proposedSet);
+
+    mApp.getOverlayManager().getTxSetFetcher().cache(proposedSet->getContentsHash(), *proposedSet);
 
     uint64_t slotIndex = nextConsensusLedgerIndex();
 

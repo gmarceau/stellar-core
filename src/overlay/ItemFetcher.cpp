@@ -31,11 +31,11 @@ ItemFetcher<T, TrackerT>::ItemFetcher(Application& app, size_t cacheSize) :
 
 template<class T, class TrackerT>
 optional<T> 
-ItemFetcher<T, TrackerT>::get(uint256 hash)
+ItemFetcher<T, TrackerT>::get(uint256 itemID)
 {
-    if (mCache.exists(hash))
+    if (mCache.exists(itemID))
     {
-        return make_optional<T>(mCache.get(hash));
+        return make_optional<T>(mCache.get(itemID));
     } else
     {
         return nullopt<T>();
@@ -47,9 +47,9 @@ template<class T, class TrackerT>
 typename ItemFetcher<T, TrackerT>::TrackerPtr
 ItemFetcher<T, TrackerT>::getOrFetch(uint256 itemID, std::function<void(T const &item)> cb)
 {
-    if (auto item = get(itemID))
+    if (mCache.exists(itemID))
     {
-        cb(*item);
+        cb(mCache.get(itemID));
         return nullptr;
     }
     {
@@ -74,7 +74,13 @@ ItemFetcher<T, TrackerT>::fetch(uint256 itemID, std::function<void(T const &item
     }
 
     tracker->listen(cb);
-    tracker->tryNextPeer();
+    if (mCache.exists(itemID))
+    {
+        tracker->recv(mCache.get(itemID));
+    } else
+    {
+        tracker->tryNextPeer();
+    }
     return tracker;
 }
 
@@ -92,7 +98,7 @@ ItemFetcher<T, TrackerT>::doesntHave(uint256 const& itemID, Peer::pointer peer)
 
 template<class T, class TrackerT>
 void 
-ItemFetcher<T, TrackerT>::recv(uint256 itemID, T item)
+ItemFetcher<T, TrackerT>::recv(uint256 itemID, T const & item)
 {
     if (auto tracker = isNeeded(itemID))
     {
@@ -100,6 +106,13 @@ ItemFetcher<T, TrackerT>::recv(uint256 itemID, T item)
         tracker->recv(item);
         mTrackers.erase(itemID);
     }
+}
+
+template<class T, class TrackerT>
+void ItemFetcher<T, TrackerT>::cache(Hash itemID, T const & item)
+{
+    mCache.put(itemID, item);
+    recv(itemID, item); // notify listeners, if any
 }
 
 template<class T, class TrackerT>
