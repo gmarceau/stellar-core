@@ -403,6 +403,7 @@ TCPPeer::drop()
 
     mWriteIdle.cancel();
     mReadIdle.cancel();
+    mAsioLoopBreaker.cancel();
     auto self = shared_from_this();
     auto sock = mSocket;
 
