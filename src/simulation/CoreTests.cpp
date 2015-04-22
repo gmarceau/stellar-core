@@ -72,7 +72,7 @@ TEST_CASE("compare", "[simulation][hide]")
 TEST_CASE("hierarchical topology at multiple scales", "[simulation][hide]")
 {
     int const nLedgers = 3;
-    for (auto nBranches = 0; nBranches < 30; nBranches++)
+    for (auto nBranches = 0; nBranches <= 5; nBranches++)
     {
         hierarchicalTopo(nLedgers, nBranches, Simulation::OVER_LOOPBACK);
     }
@@ -80,15 +80,15 @@ TEST_CASE("hierarchical topology at multiple scales", "[simulation][hide]")
 
 
 
-TEST_CASE("core4 topology long, over tcp", "[simulation][long][hide]")
+TEST_CASE("core4 topology long over tcp", "[simulation][long][hide]")
 {
-    Simulation::pointer simulation = Topologies::core(3, 1.0, Simulation::OVER_TCP);
+    Simulation::pointer simulation = Topologies::core(4, 1.0, Simulation::OVER_TCP);
     simulation->startAllNodes();
 
     simulation->crankUntil(
         [&simulation]()
     {
-        return simulation->haveAllExternalized(30);
+        return simulation->haveAllExternalized(10);
     },
         30 * Herder::EXP_LEDGER_TIMESPAN_SECONDS*2);
 
