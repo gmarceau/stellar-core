@@ -49,6 +49,7 @@ TCPPeer::TCPPeer(Application& app, Peer::PeerRole role,
           app.getMetrics().NewMeter({"overlay", "timeout", "read"}, "timeout"))
     , mTimeoutWrite(
           app.getMetrics().NewMeter({"overlay", "timeout", "write"}, "timeout"))
+    , mAsioLoopBreaker(app)
 {
 }
 
@@ -301,8 +302,17 @@ TCPPeer::readBodyHandler(asio::error_code const& error,
     if (!error)
     {
         mByteRead.Mark(bytes_transferred);
-        recvMessage();
-        startRead();
+
+        mAsioLoopBreaker.expires_from_now(std::chrono::milliseconds(0));
+        mAsioLoopBreaker.async_wait([&](asio::error_code e)
+        {
+            if (!e)
+            {
+                recvMessage();
+                startRead();
+            }
+        });
+
     }
     else
     {
