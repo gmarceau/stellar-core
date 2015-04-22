@@ -76,6 +76,7 @@ ItemFetcher<T, TrackerT>::fetch(uint256 itemID, std::function<void(T const &item
     tracker->listen(cb);
     if (mCache.exists(itemID))
     {
+        mTrackers.erase(itemID);
         tracker->recv(mCache.get(itemID));
     } else
     {
@@ -103,8 +104,8 @@ ItemFetcher<T, TrackerT>::recv(uint256 itemID, T const & item)
     if (auto tracker = isNeeded(itemID))
     {
         mCache.put(itemID, item);
-        tracker->recv(item);
         mTrackers.erase(itemID);
+        tracker->recv(item);
     }
 }
 

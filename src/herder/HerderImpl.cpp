@@ -256,16 +256,27 @@ HerderImpl::validateValue(uint64 const& slotIndex, uint256 const& nodeID,
 
 void HerderImpl::fetchTxSet(Hash txSetHash, std::function<void(TxSetFrame const & txSet)> cb)
 {
-    auto tracker = mApp.getOverlayManager().getTxSetFetcher().fetch(txSetHash, [&](TxSetFrame const &txSet_)
+    auto existing = mTxSetFetches[txSetHash];
+    if (!existing)
     {
-        // add all txs to the next set in case they don't get in this ledger
-        TxSetFrame txSet = txSet_; //  remove const
-        recvTransactions(txSet);
+        auto tracker = mApp.getOverlayManager().getTxSetFetcher().fetch(txSetHash, [&](TxSetFrame const &txSet_)
+        {
+            // add all txs to the next set in case they don't get in this ledger
+            TxSetFrame txSet = txSet_; //  remove const
+            recvTransactions(txSet);
 
-        cb(txSet);
-    });
+            cb(txSet);
+        });
 
-    mTxSetFetches[txSetHash] = tracker;
+        mTxSetFetches[txSetHash] = tracker;
+    }
+    else if (!existing->isItemFound())
+    {
+        existing->listen(cb);
+    } else 
+    {
+        cb(existing->get());
+    }
 }
 
 int
@@ -586,7 +597,7 @@ HerderImpl::valueExternalized(uint64 const& slotIndex, Value const& value)
     // and there is no point in taking a position after the round is over
     mTriggerTimer.cancel();
 
-    if (txSetTracker->isItemFound())
+    if (txSetTracker && txSetTracker->isItemFound())
     {
         auto externalizedSet = std::make_shared<TxSetFrame>(txSetTracker->get());
 
@@ -650,11 +661,10 @@ HerderImpl::valueExternalized(uint64 const& slotIndex, Value const& value)
             << " Externalized txSet not found: "
             << hexAbbrev(b.value.txSetHash);
 
-        txSetTracker->listen([slotIndex, value, this](TxSetFrame const & txSet)
+        fetchTxSet(b.value.txSetHash, [slotIndex, value, this](TxSetFrame const & txSet)
         {
             this->valueExternalized(slotIndex, value);
         });
-        mTxSetFetches[b.value.txSetHash] = txSetTracker;
     }
 }
 
@@ -686,9 +696,9 @@ HerderImpl::retrieveQuorumSet(
 
         tracker->listen([&](SCPQuorumSet const &qSet)
         {
-//            CLOG(TRACE, "Herder") << "HerderImpl: received SCPQuorumSet"
-//                                  << "@" << hexAbbrev(getLocalNodeID()) << " qSet: "
-//                                  << hexAbbrev(sha256(xdr::xdr_to_opaque(qSet)));
+            CLOG(TRACE, "Herder") << "HerderImpl: received SCPQuorumSet"
+                                  << "@" << hexAbbrev(getLocalNodeID()) << " qSet: "
+                                  << hexAbbrev(sha256(xdr::xdr_to_opaque(qSet)));
 
             mQuorumSetFetches.erase(qSetHash);
         });

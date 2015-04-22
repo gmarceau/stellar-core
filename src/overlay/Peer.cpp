@@ -287,7 +287,8 @@ Peer::recvGetTxSet(StellarMessage const& msg)
 void
 Peer::recvTxSet(StellarMessage const& msg)
 {
-    mApp.getOverlayManager().getTxSetFetcher().recv(msg.txSetHash(), msg.txSet());
+    auto hash = TxSetFrame(msg.txSet()).getContentsHash();
+    mApp.getOverlayManager().getTxSetFetcher().recv(hash, msg.txSet());
 }
 
 void
@@ -330,7 +331,8 @@ Peer::recvGetSCPQuorumSet(StellarMessage const& msg)
 void
 Peer::recvSCPQuorumSet(StellarMessage const& msg)
 {
-    mApp.getOverlayManager().getQuorumSetFetcher().recv(msg.qSetHash(), msg.qSet());
+    auto hash = sha256(xdr::xdr_to_opaque(msg.qSet()));
+    mApp.getOverlayManager().getQuorumSetFetcher().recv(hash, msg.qSet());
 }
 
 void
